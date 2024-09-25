@@ -1,11 +1,8 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * Below are the colors that are used in the app. 
  */
 
-
-
-export const Colors = {
+const Colors = {
   yellow: {
     text: 'rgb(238, 208, 69)',//秋葵
     background: 'rgb(250, 210, 125)',//麦芽
@@ -37,9 +34,12 @@ export const Colors = {
     background: 'rgba(227,214,219,255)',
   },
  black: {
+  title:'#4e606c',
   text: '#20303a'
  },
  white:{
+  buttonContainer: '#f3f8f1',
   bright: '#ffffff'
  }
 };
+export default Colors;

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ImageBackground, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import inspiringSentences from '../constants/inspiringSentences'; 
-import { Colors } from '../constants/Colors'; 
+import  Colors  from '../constants/Colors'; 
 
 export default function Home() {
   const router = useRouter();
@@ -16,7 +16,7 @@ export default function Home() {
     // Automatically navigate to login after 3 seconds
     const timer = setTimeout(() => {
       router.push('/login');
-    }, 6000);
+    }, 5000);
 
     // Cleanup the timer
     return () => clearTimeout(timer);
