@@ -1,51 +1,67 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, ImageBackground, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import React, { useState,useEffect } from 'react';
+import { View, Text, TextInput, ImageBackground, TouchableOpacity, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import RNPickerSelect from 'react-native-picker-select';
 import Colors from '../../constants/Colors'; 
-import YKINAStyle from '../../constants/Stylesheet'; 
-
-import { Ionicons } from '@expo/vector-icons'; // For icons
-import { BlurView } from 'expo-blur'; // Import BlurView for frosted glass effect
-import axios from 'axios';
+import {YKINAStyle, diseaseSelectStyles} from '../../constants/Stylesheet'; 
+import {register, getAllDiseaseNames} from '../../util/api'; 
+import { Ionicons } from '@expo/vector-icons'; 
+import { BlurView } from 'expo-blur'; 
 
 export default function Register() {
   const router = useRouter();
-  const [userName, setUsername] = useState(''); 
-  const [kidName, setKidName] = useState(''); 
+  const [userName, setUsername] = useState('');
+  const [kidName, setKidname] = useState('');
+  const [diseaseSelected, setDiseaseSelection] = useState('');
+  const [diseaseOptions, setDiseaseOptions] = useState([]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [isPickerOpen, setIsPickerOpen] = useState(false); 
+
+  useEffect(() => {
+    const fetchDiseases = async () => {
+      try {
+          const response = await getAllDiseaseNames();
+          const diseaseList = response.map(disease => ({
+            label: disease,
+            value: disease
+          }))
+          setDiseaseOptions(diseaseList); 
+      } catch (error) {
+          console.error("Error fetching disease names:", error);
+          setDiseaseOptions([]);  // Fallback to an empty array in case of error
+      }
+  };
+    fetchDiseases();
+  }, []);
   
   const handleRegister = async() => {
-    if (!userName || !kidName || !email || !password || !confirmPassword ) {
+    if (!userName || !kidName || !diseaseSelected || !email || !password || !confirmPassword ) {
       Alert.alert('Error', 'Please fill in all fields.');
       return;
     }
+
     if (password !== confirmPassword) {
       Alert.alert('Passwords do not match.');
       return;
     }
 
-    try {
-      const response = await axios.post('http://http://18.217.109.182/:1337/auth/local/register', {
-        userName,
-        kidName,
-        email,
-        password
-      });
+    const response = await register(userName,kidName, diseaseSelected, email, password);
 
+    if (response?.sucess) {
       Alert.alert('Success', 'Registration successful!', [
         { text: 'OK', onPress: () => router.push('/dashboard') }, // Redirect to dashboard
       ]);
+    }else{
+      Alert.alert('Error', response?.message);
+    } 
+  };
 
-    } catch (error) {
-      // Handle errors, e.g., if the user is already registered
-      const errorMessage = error.response?.data?.message || 'Registration failed. Please try again.';
-      Alert.alert('Error', errorMessage);
-    }
-  }
-
-
+  const togglePicker = () => {
+    setIsPickerOpen(prev => !prev); 
+  };
+  
 
   return (
     <ImageBackground
@@ -56,14 +72,14 @@ export default function Register() {
         {/* Frosted Glass Effect Container using BlurView */}
         <BlurView intensity={10} tint="light" style={YKINAStyle.frostedGlass}>
           {/* Login Title */}
-          <Text style={YKINAStyle.title}>Register</Text>
 
           {/* Input Fields */}
           <View style={YKINAStyle.inputContainer}>
             <TextInput
               style={YKINAStyle.inputText}
               placeholder="Your Name"
-              placeholderTextColor={YKINAStyle.inputText.color}
+              autoCapitalize="none"
+              placeholderTextColor={Colors.black.text}
               value={userName}
               onChangeText={setUsername}
             />
@@ -72,28 +88,41 @@ export default function Register() {
           <View style={YKINAStyle.inputContainer}>
             <TextInput
               style={YKINAStyle.inputText}
-              placeholder="Kid Name"
-              placeholderTextColor={YKINAStyle.inputText.color}
+              placeholder="Kid's Nick Name"
+              autoCapitalize="none"
+              placeholderTextColor={Colors.black.text}
               value={kidName}
-              onChangeText={setKidName}
+              onChangeText={setKidname}
             />
             <Ionicons name="people" size={24} color={Colors.white.bright} style={YKINAStyle.inputIcon} />
           </View>
+          <RNPickerSelect
+            onValueChange={(value) => {setDiseaseSelection(value);  setIsPickerOpen(false);}}
+            items={diseaseOptions}
+            placeholder={{ label: 'Select a disease...', value: null }}
+            onOpen={togglePicker}
+            onClose={() => setIsPickerOpen(false)}
+            style={diseaseSelectStyles}
+            Icon={()=> (<Ionicons name={isPickerOpen ? "chevron-up" : "chevron-down"} size={24} color={Colors.white.bright} style={YKINAStyle.inputIcon} />
+            )}
+          />     
           <View style={YKINAStyle.inputContainer}>
             <TextInput
               style={YKINAStyle.inputText}
               placeholder="Email"
-              placeholderTextColor={YKINAStyle.inputText.color}
+              autoCapitalize="none"
+              placeholderTextColor={Colors.black.text}
               value={email}
               onChangeText={setEmail}
             />
-            <Ionicons name="mail" size={24} color={Colors.white.bright} style={YKINAStyle.inputIcon} />
+            <Ionicons name="mail" size={24} color={Colors.white.bright}/>
           </View>
           <View style={YKINAStyle.inputContainer}>
             <TextInput
               style={YKINAStyle.inputText}
               placeholder="Password"
-              placeholderTextColor={YKINAStyle.inputText.color}
+              autoCapitalize="none"
+              placeholderTextColor={Colors.black.text}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
@@ -104,7 +133,8 @@ export default function Register() {
             <TextInput
               style={YKINAStyle.inputText}
               placeholder="Confirm Password"
-              placeholderTextColor={YKINAStyle.inputText.color}
+              autoCapitalize="none"
+              placeholderTextColor={Colors.black.text}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry

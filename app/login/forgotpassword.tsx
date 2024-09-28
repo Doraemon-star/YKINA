@@ -2,11 +2,10 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, ImageBackground, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import Colors from '../../constants/Colors'; 
-import YKINAStyle from '../../constants/Stylesheet'; 
+import {YKINAStyle} from '../../constants/Stylesheet'; 
 
 import { Ionicons } from '@expo/vector-icons'; // For icons
-import { Checkbox } from 'expo-checkbox'; 
-import { BlurView } from 'expo-blur'; // Import BlurView for frosted glass effect
+import { BlurView } from 'expo-blur'; 
 
 export default function Login() {
   const router = useRouter();

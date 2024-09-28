@@ -1,26 +1,26 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, ImageBackground, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, ImageBackground, TouchableOpacity, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import Colors from '../../constants/Colors'; 
-import YKINAStyle from '../../constants/Stylesheet'; 
-import { Ionicons } from '@expo/vector-icons'; // For icons
-import { Checkbox } from 'expo-checkbox'; 
-import { BlurView } from 'expo-blur'; // Import BlurView for frosted glass effect
+import {YKINAStyle} from '../../constants/Stylesheet'; 
+import { Ionicons } from '@expo/vector-icons'; 
+import { BlurView } from 'expo-blur'; 
+import {singin} from '../../util/api'; 
+
 
 export default function Login() {
   const router = useRouter();
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
 
-  // Handle Remember Me functionality
-  const handleRememberMe = () => {
-    setRememberMe(!rememberMe);
-    // Save username logic if Remember Me is checked
-    if (!rememberMe) {
-      // Save username for next login
+  const handleLogin = async() => {
+    const response = await singin(email, password);
+    if (response?.sucess) {
+      router.push('/dashboard');
+    }else{
+      Alert.alert('Error', response?.message);
     }
-  };
+  }
 
   return (
     <ImageBackground
@@ -37,10 +37,11 @@ export default function Login() {
           <View style={YKINAStyle.inputContainer}>
             <TextInput
               style={YKINAStyle.inputText}
-              placeholder="Username"
+              placeholder="Email"
+              autoCapitalize="none"
               placeholderTextColor={YKINAStyle.inputText.color}
-              value={username}
-              onChangeText={setUsername}
+              value={email}
+              onChangeText={setEmail}
             />
             <Ionicons name="person" size={24} color={Colors.white.bright} style={YKINAStyle.inputIcon} />
           </View>
@@ -48,6 +49,7 @@ export default function Login() {
             <TextInput
               style={YKINAStyle.inputText}
               placeholder="Password"
+              autoCapitalize="none"
               placeholderTextColor={YKINAStyle.inputText.color}
               value={password}
               onChangeText={setPassword}
@@ -56,23 +58,13 @@ export default function Login() {
             <Ionicons name="lock-closed" size={24} color={Colors.white.bright} style={YKINAStyle.inputIcon} />
           </View>
 
-          {/* Remember Me and Forgot Password */}
-          <View style={YKINAStyle.row}>
-            <View style={YKINAStyle.checkboxContainer}>
-              <Checkbox
-                value={rememberMe}
-                onValueChange={handleRememberMe}
-                style={YKINAStyle.checkbox}
-              />
-              <Text style={YKINAStyle.checkboxText}>Remember me</Text>
-            </View>
-            <TouchableOpacity onPress={() => router.push('/login/forgotpassword')}>
-              <Text style={YKINAStyle.generalTextUnderline}>Forgot Password?</Text>
-            </TouchableOpacity>
-          </View>
-
+          {/* Remember Me and Forgot Password */}       
+          <TouchableOpacity onPress={() => router.push('/login/forgotpassword')}>
+            <Text style={YKINAStyle.generalTextUnderline}>Forgot Password?</Text>
+          </TouchableOpacity>
+          
           {/* Login Button */}
-          <TouchableOpacity style={YKINAStyle.whiteButtonContainer}>
+          <TouchableOpacity style={YKINAStyle.whiteButtonContainer} onPress={handleLogin}>
             <Text style={YKINAStyle.blackButtonText}>Login</Text>
           </TouchableOpacity>
 

@@ -1,29 +1,23 @@
-// app/dashboard/index.tsx
-import { Link } from 'expo-router';
-import { View, Text, Button } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 
-export default function DashboardPage() {
+export default function Dashboard () {
   return (
-    <View>
-      <Text>Dashboard</Text>
-      <Link href="/dashboard/notification">
-        <Button title="Go to Notifications" />
-      </Link>
-      <Link href="/dashboard/settings">
-        <Button title="Go to Settings" />
-      </Link>
-      <Link href="/dashboard/todo">
-        <Button title="Go to Todo List" />
-      </Link>
-      <Link href="/dashboard/medical">
-        <Button title="Go to Medical Records" />
-      </Link>
-      <Link href="/dashboard/match">
-        <Button title="Go to Match Page" />
-      </Link>
-      <Link href="/dashboard/chat">
-        <Button title="Go to Conversations" />
-      </Link>
+    <View style={styles.container}>
+      <Text style={styles.text}>I am dashboard</Text>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,             // Make the View fill the entire screen
+    justifyContent: 'center', // Center the content vertically
+    alignItems: 'center',    // Center the content horizontally
+    backgroundColor: '#f0f0f0', // Add a background color
+  },
+  text: {
+    fontSize: 20,       // Adjust text size
+    color: '#333',      // Ensure the text color contrasts with the background
+  },
+});

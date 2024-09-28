@@ -55,10 +55,11 @@ export const YKINAStyle = StyleSheet.create ({
         height: 50,
         color: Colors.black.text,
         fontSize: 16,
-        },
-        inputIcon: {
+    },
+    inputIcon: {
         marginLeft: 10,
     },
+    
     generalText: {
         color: Colors.black.text,
         fontSize: 15,
@@ -71,25 +72,7 @@ export const YKINAStyle = StyleSheet.create ({
         color: Colors.black.text,
         fontSize: 15,
         textDecorationLine: 'underline',
-    },
-    row: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        width: '100%',
-        marginBottom: 20,
-    },
-    checkboxContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    checkbox: {
-        marginRight: 10,
-        backgroundColor: Colors.white.bright
-    },
-    checkboxText: {
-        color: Colors.black.text,
-        fontSize: 15,
-        //fontWeight: 'bold',
+        marginBottom: 20
     },
     whiteButtonContainer: {
         backgroundColor: Colors.white.buttonContainer,
@@ -122,4 +105,24 @@ export const YKINAStyle = StyleSheet.create ({
     },
 });
 
-export default YKINAStyle;
+export const diseaseSelectStyles = {
+    inputIOSContainer:{...YKINAStyle.inputContainer},
+    inputAndroidContainer:{...YKINAStyle.inputContainer},
+    inputIOS: {
+        ...YKINAStyle.inputText,
+        
+    },
+    inputAndroid: {
+        ...YKINAStyle.inputText,
+       
+    },
+    placeholder: {
+        color: Colors.black.text,
+    },
+    iconContainer: {
+        right: 15,
+    },
+    
+   
+};
+

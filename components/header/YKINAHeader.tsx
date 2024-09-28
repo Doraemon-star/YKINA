@@ -1,7 +1,7 @@
 import React from 'react';
 import { BlurView } from 'expo-blur';
 import Colors from '../../constants/Colors'; 
-import YKINAStyle from '../../constants/Stylesheet'; 
+import {YKINAStyle} from '../../constants/Stylesheet'; 
 
 const YKINAHeaderOptions =  {
   headerTitle: '', 
