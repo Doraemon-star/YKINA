@@ -3,8 +3,9 @@ import { View, Text, TextInput, ImageBackground, TouchableOpacity, Alert } from 
 import { useRouter } from 'expo-router';
 import RNPickerSelect from 'react-native-picker-select';
 import Colors from '../../constants/Colors'; 
+import { Diagnosis } from '@/constants/type';
 import {YKINAStyle, diseaseSelectStyles} from '../../constants/Stylesheet'; 
-import {register, getAllDiseaseNames} from '../../util/api'; 
+import api from '../../util/api'; 
 import { Ionicons } from '@expo/vector-icons'; 
 import { BlurView } from 'expo-blur'; 
 
@@ -12,32 +13,39 @@ export default function Register() {
   const router = useRouter();
   const [userName, setUsername] = useState('');
   const [kidName, setKidname] = useState('');
-  const [diseaseSelected, setDiseaseSelection] = useState('');
-  const [diseaseOptions, setDiseaseOptions] = useState([]);
+  const [diagnosisRecords, setDiagnosisRecords] = useState<{ [key: string]: Diagnosis }>({});
+  const [diseaseOptions, setDiseaseOptions] = useState<{ label: string; value: string }[]>([]);
+  const [selectedDisease, setSelectedDisease] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isPickerOpen, setIsPickerOpen] = useState(false); 
 
+  
   useEffect(() => {
     const fetchDiseases = async () => {
       try {
-          const response = await getAllDiseaseNames();
-          const diseaseList = response.map(disease => ({
-            label: disease,
-            value: disease
-          }))
-          setDiseaseOptions(diseaseList); 
+        const apiInstance = await api();
+        const diagnoses:Diagnosis[] = await apiInstance.getAllDiseases();
+        let diagnosesDict: { [key: string]: Diagnosis } = {};
+        let diseaseNameList: {label:string, value:string}[] = [];
+        diagnoses.forEach(diagnosis => {
+          diagnosesDict[diagnosis.diseaseName] = diagnosis;
+          diseaseNameList.push({label:diagnosis.diseaseName,value: diagnosis.diseaseName })
+        })    
+        diseaseNameList.push({label: 'Other', value: 'Other'})
+        setDiagnosisRecords(diagnosesDict);
+        setDiseaseOptions(diseaseNameList); 
       } catch (error) {
           console.error("Error fetching disease names:", error);
-          setDiseaseOptions([]);  // Fallback to an empty array in case of error
+          setDiseaseOptions([]);  
       }
   };
     fetchDiseases();
   }, []);
   
   const handleRegister = async() => {
-    if (!userName || !kidName || !diseaseSelected || !email || !password || !confirmPassword ) {
+    if (!userName || !kidName || !selectedDisease || !email || !password || !confirmPassword ) {
       Alert.alert('Error', 'Please fill in all fields.');
       return;
     }
@@ -46,8 +54,10 @@ export default function Register() {
       Alert.alert('Passwords do not match.');
       return;
     }
-
-    const response = await register(userName,kidName, diseaseSelected, email, password);
+    
+    const apiInstance = await api();
+    const diagnosisRecord = diagnosisRecords[selectedDisease]; 
+    const response = await apiInstance.register(userName,kidName, diagnosisRecord, email, password);
 
     if (response?.sucess) {
       Alert.alert('Success', 'Registration successful!', [
@@ -68,7 +78,7 @@ export default function Register() {
       source={require('../../assets/images/image15.png')} // Replace with your own image
       style={YKINAStyle.imageIackground}
     >
-      <View style={YKINAStyle.overlay}>
+      <View style={YKINAStyle.overlayCenter}>
         {/* Frosted Glass Effect Container using BlurView */}
         <BlurView intensity={10} tint="light" style={YKINAStyle.frostedGlass}>
           {/* Login Title */}
@@ -97,7 +107,7 @@ export default function Register() {
             <Ionicons name="people" size={24} color={Colors.white.bright} style={YKINAStyle.inputIcon} />
           </View>
           <RNPickerSelect
-            onValueChange={(value) => {setDiseaseSelection(value);  setIsPickerOpen(false);}}
+            onValueChange={(value) => {setSelectedDisease(value);  setIsPickerOpen(false);}}
             items={diseaseOptions}
             placeholder={{ label: 'Select a disease...', value: null }}
             onOpen={togglePicker}

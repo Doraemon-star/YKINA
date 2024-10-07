@@ -1,3 +1,4 @@
+//login/index
 import React, { useState } from 'react';
 import { View, Text, TextInput, ImageBackground, TouchableOpacity, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -5,8 +6,7 @@ import Colors from '../../constants/Colors';
 import {YKINAStyle} from '../../constants/Stylesheet'; 
 import { Ionicons } from '@expo/vector-icons'; 
 import { BlurView } from 'expo-blur'; 
-import {singin} from '../../util/api'; 
-
+import api from '../../util/api'; 
 
 export default function Login() {
   const router = useRouter();
@@ -14,7 +14,8 @@ export default function Login() {
   const [password, setPassword] = useState('');
 
   const handleLogin = async() => {
-    const response = await singin(email, password);
+    const apiInstance = await api();
+    const response = await apiInstance.signin(email, password);
     if (response?.sucess) {
       router.push('/dashboard');
     }else{
@@ -27,7 +28,7 @@ export default function Login() {
       source={require('../../assets/images/image22.png')} // Replace with your own image
       style={YKINAStyle.imageIackground}
     >
-      <View style={YKINAStyle.overlay}>
+      <View style={YKINAStyle.overlayCenter}>
         {/* Frosted Glass Effect Container using BlurView */}
         <BlurView intensity={10} tint="light" style={YKINAStyle.frostedGlass}>
           {/* Login Title */}

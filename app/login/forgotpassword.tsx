@@ -21,7 +21,7 @@ export default function Login() {
       source={require('../../assets/images/image22.png')} // Replace with your own image
       style={YKINAStyle.imageIackground}
     >
-      <View style={YKINAStyle.overlay}>
+      <View style={YKINAStyle.overlayCenter}>
         {/* Frosted Glass Effect Container using BlurView */}
         <BlurView intensity={10} tint="light" style={YKINAStyle.frostedGlass}>
           {/* Login Title */}

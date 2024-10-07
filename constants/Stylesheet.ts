@@ -4,6 +4,9 @@
 
 import { StyleSheet } from 'react-native';
 import Colors from '../constants/Colors'; 
+import { Dimensions } from 'react-native';
+
+const { width, height } = Dimensions.get('screen');
 
 export const YKINAStyle = StyleSheet.create ({
     imageIackground: {
@@ -11,10 +14,19 @@ export const YKINAStyle = StyleSheet.create ({
         resizeMode: 'cover',
         justifyContent: 'center',
     },
-    overlay: {
+    overlayCenter: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    container: {
+        flex: 1,
+        width: '95%',        
+        padding: 10,
+        marginTop: '15%',
+        marginBottom: '5%',
+        justifyContent: 'flex-start',
+        alignItems: 'flex-start',
     },
     frostedGlass: {
         width: '85%',
@@ -27,17 +39,70 @@ export const YKINAStyle = StyleSheet.create ({
         borderColor: Colors.white.bright,
         overflow: 'hidden', 
     },
+    currentStatusFrostedGlass: {
+        flex: 1,
+        flexDirection: 'row',
+        justifyContent: 'flex-start',
+        width: '100%',
+        padding: 10,
+        marginTop: 10,
+        marginBottom: 5,
+        borderRadius: 10,
+        backgroundColor: 'rgba(255, 255, 255, 0.3)', 
+        borderWidth: 0.5, 
+        borderColor: Colors.white.bright,
+        overflow: 'hidden', 
+    },
+    medicationItem: {
+        flex:1,
+        marginVertical: 10,
+        padding: 10,
+        width: '100%',  
+    },
+    medicationRowContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+    },
     frostedGlassHeader:{
         height: '100%',
         backgroundColor: 'rgba(255, 255, 255, 0.3)', 
         borderWidth: 0.5, 
         borderColor: Colors.white.bright,
     },
+    frostedGlassFooter:{
+        flex:0.1,
+        width: '100%',
+        backgroundColor: 'rgba(255, 255, 255, 0.3)', 
+        borderWidth: 0.15, 
+        borderColor: Colors.white.bright,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    quoteContainer: {
+        flex: 1 / 2, // Top half of the screen
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+      },
+    quoteText: {
+    fontSize: 28,
+    color: Colors.grey.text,
+    textAlign: 'center',
+    fontStyle: 'italic',
+    fontWeight: 'bold',
+    marginTop: 100
+    },
     title: {
         fontSize: 24,
         fontWeight: 'bold',
         color: Colors.black.title,
         marginBottom: 30,
+    },
+    title2nd: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: Colors.black.title,
+        marginBottom: 5,
     },
     inputContainer: {
         flexDirection: 'row',
@@ -74,6 +139,27 @@ export const YKINAStyle = StyleSheet.create ({
         textDecorationLine: 'underline',
         marginBottom: 20
     },
+    medicationDetails: {
+        fontSize: 14,
+        marginVertical: 10,
+    },
+    medicationDetailsUnderline: {
+        fontSize: 14,
+        marginVertical: 10,
+        textDecorationLine: 'underline',
+
+    },
+    saveEditUnderline: {
+        color: Colors.green.text,
+        fontSize: 15,
+        fontWeight: 'bold',
+        textDecorationLine: 'underline',
+        marginBottom: 5,
+    },
+    medicationName: {
+        fontSize: 18,
+        fontWeight: 'bold',
+      },
     whiteButtonContainer: {
         backgroundColor: Colors.white.buttonContainer,
         paddingVertical: 15,
