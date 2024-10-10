@@ -106,6 +106,7 @@ export const YKINAStyle = StyleSheet.create ({
     },
     inputContainer: {
         flexDirection: 'row',
+        height: 50,  
         alignItems: 'center',
         marginBottom: 20,
         width: '100%',
@@ -115,9 +116,18 @@ export const YKINAStyle = StyleSheet.create ({
         borderWidth: 1, 
         borderColor: Colors.white.bright, 
     },
+    dropdownContainer: {       
+        backgroundColor: 'rgba(255, 255, 255, 0.8)', 
+        borderColor: Colors.green.text, 
+    },
+    dropdownItem: {
+        padding: 5,
+        borderBottomWidth: 1,
+        borderBottomColor: '#ddd',
+    },
+    
     inputText: {
-        flex: 1,
-        height: 50,
+        flex:1,
         color: Colors.black.text,
         fontSize: 16,
     },
@@ -183,6 +193,21 @@ export const YKINAStyle = StyleSheet.create ({
         fontSize: 18,
         fontWeight: 'bold',
     },
+    addNewRecordButton: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        width: 40,
+        height: "80%",
+        backgroundColor: 'rgba(255, 255, 255, 0.3)',
+        borderRadius: 25,
+        // Shadow for iOS
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        // Elevation for Android
+        elevation: 5,
+      },
     blackTextUnderline: {
         color: Colors.black.title,
         fontSize: 16,

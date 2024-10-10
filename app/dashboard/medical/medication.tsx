@@ -12,121 +12,128 @@ import {
   Text,
 } from 'react-native';
 import { BlurView } from 'expo-blur'; 
-import Autocomplete from 'react-native-autocomplete-input';
 import {YKINAStyle} from '@/constants/Stylesheet'; 
 import { Ionicons } from '@expo/vector-icons'; 
 import Colors from '@/constants/Colors'; 
-import api from '@/util/api'
+import api from '@/util/api';
+import { Dropdown } from 'react-native-element-dropdown';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
+type medication= {
+  drugname?: string,
+  doseamount?: string,
+  doseunit?: string,
+  freq?: string,
+  timeperiod?: string,
+  startdate?: string,
+  enddate?:string,
+  status?: string,
+  medDocumentId?: string,
+}
 export default function MedicationScreen() {
-  // Hardcoded fake medication list for testing
-  const [medications, setMedications] = useState([
-    {
-      id: 1,
-      name: 'Aspirin',
-      doseAmount: '100',
-      doseUnit: 'mg',
-      frequency: 'Once a day',
-      timePeriod: '30 days',
-      status: 'Active',
-    },
-    {
-      id: 2,
-      name: 'Lisinopril',
-      doseAmount: '20',
-      doseUnit: 'mg',
-      frequency: 'Twice a day',
-      timePeriod: '90 days',
-      status: 'Active',
-    },
-    {
-      id: 3,
-      name: 'Metformin',
-      doseAmount: '500',
-      doseUnit: 'mg',
-      frequency: 'Three times a day',
-      timePeriod: '60 days',
-      status: 'Stopped',
-    },
-    {
-      id: 4,
-      name: 'Simvastatin',
-      doseAmount: '40',
-      doseUnit: 'mg',
-      frequency: 'Once a day',
-      timePeriod: '120 days',
-      status: 'Active',
-    },
-    {
-      id: 5,
-      name: 'Amoxicillin',
-      doseAmount: '250',
-      doseUnit: 'mg',
-      frequency: 'Three times a day',
-      timePeriod: '7 days',
-      status: 'Active',
-    },
-    {
-      id: 6,
-      name: 'test1',
-      doseAmount: '250',
-      doseUnit: 'mg',
-      frequency: 'Three times a day',
-      timePeriod: '7 days',
-      status: 'Active',
-    },
-    {
-      id: 7,
-      name: 'test2',
-      doseAmount: '250',
-      doseUnit: 'mg',
-      frequency: 'Three times a day',
-      timePeriod: '7 days',
-      status: 'Active',
-    },
-    
-  ]);
-  const [editingMedication, setEditingMedication] = useState(null);
-  const [isModalVisible, setModalVisible] = useState(false);
-  const [newMedication, setNewMedication] = useState({
-    name: '',
-    doseAmount: '',
-    doseUnit: '',
-    frequency: '',
-    timePeriod: '',
-    startDate: '',
-    endDate:'',
-    status: '',
-  });
-  const [drugNames, setDrugNames] = useState<string[]>([]);
-  const [filteredDrugs, setFilteredDrugs] = useState<string[]>([]);
-  const [query, setQuery] = useState('');
 
-  useEffect(() => {
-    const fetchDrugNames = async () => {
-      try {
-        const apiInstance = await api();
-        const allDrugNames = await apiInstance.getAllDrugNames();
-        setDrugNames(allDrugNames); 
-      } catch (error) {
-        console.error('Error fetching drug names:', error);
-      }
-    };
+  //#region useState
+  const [medications, setMedications] = useState<medication[]>([]);
+  const [newMedication, setNewMedication] = useState<medication>({});
+  const [editingMedication, setEditingMedication] = useState<medication | null>(null);
+  const [isModalVisible, setModalVisible] = useState(false);
+  const [editRecord, setEditRecord] = useState(false);
+  const [newRecord, setNewRecord]= useState(false);
+  
+  const [drugNames, setDrugNames] = useState<string[]>([]);
+  const [drugUnits, setDrugUnits] = useState<string[]>([]);
+  const [timePeriods, setTimePeriods] = useState<string[]>([]);
+
+  const [isFocusDrugName, setIsFocusDrugName] = useState(false);
+  const [isFocusDoseUnit, setIsFocusDoseUnit] = useState(false);
+  const [isFocusTimePeriod, setIsFocusTimePeriod] = useState(false);
+
+  const [selectedDrugName, setSelectedDrugName] = useState('');
+  const [selectedDoseUnit, setSelectedDoseUnit] = useState('');
+  const [selectedTimePeriod, setSelectedTimePeriod] = useState(''); 
+
+  const [startDate, setStartDate] = useState<Date>();
+  const [endDate, setEndDate] = useState<Date>();
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  //#endregion
+
+  const fetchDrugNames = async () => {
+    try {
+      const apiInstance = await api();
+      const allDrugNames = await apiInstance.getAllDrugNames();
+      const formattedData = allDrugNames.map((item) => ({
+        label: item,
+        value: item 
+    }));
+      setDrugNames(formattedData); 
+    } catch (error) {
+      console.error('Error fetching drug names:', error);
+    }
+  };
+
+  const fetchMedications = async () => {
+    try {
+      const apiInstance = await api();
+      const allDrugUnits = await apiInstance.getAllMedications();
+      const formattedData = allDrugUnits.map((item) => ({
+        drugname: item.drug.drugName,
+        doseamount: item.doseAmount,
+        doseunit: item.doseUnit,
+        freq: item.frequency,
+        timeperiod: item.timePeriod,
+        startdate: item.startDate,
+        enddate:item.endDate,
+        status: item.endDate ? 'Inactive' : 'Active',
+        medDocumentId: item.documentId,
+      }));
+      setMedications(formattedData); 
+    } catch (error) {
+      console.error('Error fetching all medications:', error);
+    }
+  };
+
+  const fetchDrugUnits = async () => {
+    try {
+      const apiInstance = await api();
+      const allDrugUnits = await apiInstance.getAllDrugUnits();
+      const formattedData = allDrugUnits.map((item) => ({
+        label: item,
+        value: item 
+      }));
+      setDrugUnits(formattedData); 
+    } catch (error) {
+      console.error('Error fetching drug units:', error);
+    }
+  };
+  const fetchTimePeriods = async () => {
+    try {
+      const apiInstance = await api();
+      const allTimePeriods = await apiInstance.getAllTimePeriods();
+      const formattedData = allTimePeriods.map((item) => ({
+        label: item,
+        value: item 
+      }));
+      setTimePeriods(formattedData); 
+    } catch (error) {
+      console.error('Error fetching drug units:', error);
+    }
+  };
+
+  useEffect(() => { 
     fetchDrugNames();
+    fetchDrugUnits();
+    fetchTimePeriods();
+    fetchMedications();
   }, []);
 
   // Handle filtering the drug list based on input
-  const handleDrugSearch = (input) => {
-    if (input) {
-      const filtered = drugNames.filter((name:string) =>
-        name.toLowerCase().includes(input.toLowerCase())
-      );
-      setFilteredDrugs(filtered);
-    } else {
-      setFilteredDrugs([]);
-    }
-    setQuery(input); 
-    setNewMedication({ ...newMedication, name: input }); 
+  
+
+  const handleNew = () => {
+        setModalVisible(true);
+        setNewRecord(true);
+        setEditRecord(false);
   };
 
   // Handle Edit
@@ -142,8 +149,14 @@ export default function MedicationScreen() {
           {
             text: "OK",
             onPress: () => {
+              if (medication) {
                 setEditingMedication(medication);
                 setModalVisible(true);
+                setEditRecord(true);
+                setNewRecord(false);
+              } else {
+                console.error("Invalid medication object");
+              }
             },
           },
         ]
@@ -174,7 +187,7 @@ export default function MedicationScreen() {
   };
 
   // Handle Save Edit
-  const handleSaveEdit = () => {
+  const handleSave = () => {
     setMedications((prevMedications) =>
       prevMedications.map((med) =>
         med.id === editingMedication.id ? newMedication : med
@@ -192,22 +205,50 @@ export default function MedicationScreen() {
         tint="light" 
       > 
         <View style={YKINAStyle.medicationRowContainer}>
-          <Text style={YKINAStyle.medicationName}>{item.name}</Text>
+          <Text style={YKINAStyle.medicationName}>{item.drugname}</Text>
           <Text style={YKINAStyle.blackButtonText}>{item.status}</Text>
         </View> 
 
         <View style={YKINAStyle.medicationRowContainer}>
-          <Text style={YKINAStyle.medicationDetails}>{item.doseAmount} {item.doseUnit}</Text>
-          <Text style={YKINAStyle.medicationDetails}>{item.frequency}</Text>  
+          <Text style={YKINAStyle.medicationDetails}>{item.doseamount} {item.doseunit}</Text>
+          <Text style={YKINAStyle.medicationDetails}>{item.freq}/{item.timeperiod}</Text>  
           <TouchableOpacity onPress={() => handleEdit(item)} >
             <Text style={YKINAStyle.medicationDetailsUnderline}>edit</Text>
           </TouchableOpacity>     
-          <TouchableOpacity onPress={() =>handleDelete(item.id)} >
+          <TouchableOpacity onPress={() =>handleDelete(item.medDocumentId)} >
             <Text style={YKINAStyle.medicationDetailsUnderline}>delete</Text>
           </TouchableOpacity>     
         </View>
       </BlurView>
   );
+
+  //#region date picker
+  const endDatePicker = () => {
+    setShowEndDatePicker(true);
+  };
+  const startDatePicker = () => {
+    setShowStartDatePicker(true);
+  };
+
+  const onStartDateChange = (event: any, selectedDate?: Date | undefined) => {
+    setShowStartDatePicker(false);
+    if (selectedDate) {
+      setStartDate(selectedDate);
+    }
+  };
+
+  const onEndDateChange = (event: any, selectedDate?: Date | undefined) => {
+    setShowEndDatePicker(false);
+    if (selectedDate) {
+      setEndDate(selectedDate);
+    }
+  };
+  //#endregion
+   
+  const inputText = {
+    ...YKINAStyle.inputText, 
+    flex: undefined, 
+  };
 
   return (
     <ImageBackground source={require('@/assets/images/image25.png')} style={YKINAStyle.imageIackground}>
@@ -216,94 +257,188 @@ export default function MedicationScreen() {
           <FlatList
               data={medications}
               renderItem={renderMedication}
-              keyExtractor={(item) => item.id.toString()}    
+              keyExtractor={(item) => item.medDocumentId.toString()}    
               style={{ flex: 1, width: '100%' }}       
           />
           
-
           <Modal visible={isModalVisible} animationType="slide">
               <ImageBackground source={require('@/assets/images/image16.png')} style={YKINAStyle.imageIackground}>
                 <View style={YKINAStyle.overlayCenter}>
-                  <BlurView intensity={10} tint="light" style={YKINAStyle.frostedGlass}>
-
-                    <View style={YKINAStyle.inputContainer}>
-                    <Autocomplete
-                      data={filteredDrugs}
-                      defaultValue={query}
-                      onChangeText={handleDrugSearch}
-                      placeholder="Medication Name"
-                      flatListProps={{
-                        renderItem: ({ item }) => (
-                          <TouchableOpacity onPress={() => {
-                            setQuery(item);
-                            setNewMedication({ ...newMedication, name: item });
-                          }}>
-                            <Text style={YKINAStyle.generalText}>{item}</Text>
-                          </TouchableOpacity>
-                        ),
-                        keyExtractor: (item) => item,
-                        
-                      }}
+                  <BlurView intensity={10} tint="light" style={YKINAStyle.frostedGlass}>              
+                    <Dropdown
+                      style={[YKINAStyle.inputContainer, isFocusDrugName && { borderColor: Colors.green.text }]}
+                      placeholderStyle={[inputText,{color:'#A9A9A9'}]}
+                      selectedTextStyle={inputText}
+                      inputSearchStyle={inputText}
+                      containerStyle = {YKINAStyle.dropdownContainer}
+                      data={drugNames}
+                      search
+                      maxHeight={300}
+                      labelField="label"
+                      valueField="value"
+                      placeholder={
+                        !isFocusDrugName 
+                          ? (
+                              editRecord 
+                                ? editingMedication?.drugname 
+                                : (newRecord ? 'Select medication' : '...')
+                            )
+                          : '...'
+                      }
+                      searchPlaceholder="Search..."
+                      value={selectedDrugName}
+                      onFocus={() => setIsFocusDrugName(true)}
+                      onBlur={() => setIsFocusDrugName(false)}
+                      onChange={item => {
+                        setSelectedDrugName(item.value);
+                        setIsFocusDrugName(false);
+                      }}               
                     />
-                    </View>
-
+                  
                     <View style={YKINAStyle.medicationRowContainer}>
                       <View style={[YKINAStyle.inputContainer, {width: "45%",marginRight: 10}]}>
                         <TextInput
-                            placeholder="Dose Amount"
-                            value={newMedication.doseAmount}
+                            placeholder={editRecord ? editingMedication?.doseamount:"Dose Amount"}
+                            value={editRecord ? editingMedication?.doseamount:newMedication.doseamount}
                             keyboardType="numeric"
-                            onChangeText={(text) => setNewMedication({ ...newMedication, doseAmount: text })}
-                            style={YKINAStyle.inputText}
+                            onChangeText={(text) =>{
+                              editRecord? setEditingMedication({ ...editingMedication, doseamount: text })
+                              :setNewMedication({ ...newMedication, doseamount: text })
+
+                            } }
+                            style={inputText}
                         />
                       </View>
-                      <View style={[YKINAStyle.inputContainer, {width: "45%"}]}>
-                        <TextInput
-                            placeholder="Dose Unit"
-                            value={newMedication.doseUnit}
-                            onChangeText={(text) => setNewMedication({ ...newMedication, doseUnit: text })}
-                            style={YKINAStyle.inputText}
-                        />
-                      </View>
+                      <Dropdown
+                        style={[YKINAStyle.inputContainer, {width: "45%"}, isFocusDoseUnit && { borderColor: Colors.green.text }]}
+                        placeholderStyle={[inputText,{color:'#A9A9A9'}]}
+                        selectedTextStyle={inputText}
+                        inputSearchStyle={inputText}
+                        containerStyle = {YKINAStyle.dropdownContainer}
+                        data={drugUnits}
+                        search
+                        maxHeight={300}
+                        labelField="label"
+                        valueField="value"
+                        placeholder={
+                          !isFocusDoseUnit 
+                            ? (
+                                editRecord 
+                                  ? editingMedication?.doseunit 
+                                  : (newRecord ? 'Select unit' : '...')
+                              )
+                            : '...'
+                        }
+                        searchPlaceholder="Search..."
+                        value={selectedDoseUnit}
+                        onFocus={() => setIsFocusDoseUnit(true)}
+                        onBlur={() => setIsFocusDoseUnit(false)}
+                        onChange={item => {
+                          setSelectedDoseUnit(item.value);
+                          setIsFocusDoseUnit(false);
+                        }}               
+                      />
                     </View>
 
                     <View style={YKINAStyle.medicationRowContainer}>
                       <View style={[YKINAStyle.inputContainer, {width: "45%",marginRight: 10}]}>
                         <TextInput
-                            placeholder="Frequency"
-                            value={newMedication.frequency}
-                            onChangeText={(text) => setNewMedication({ ...newMedication, frequency: text })}
-                            style={YKINAStyle.inputText}
+                            placeholder={editRecord ? editingMedication?.freq:"Frequency"}
+                            value={editRecord ? editingMedication?.freq:newMedication.freq}
+                            onChangeText={(text) => {
+                              editRecord? setEditingMedication({ ...editingMedication, freq: text })
+                              :setNewMedication({ ...newMedication, freq: text })
+
+                            } }
+                            style={inputText}
                         />
                       </View>
-                      <View style={[YKINAStyle.inputContainer, {width: "45%"}]}>
-                        <TextInput
-                            placeholder="day"
-                            value={newMedication.frequency}
-                            onChangeText={(text) => setNewMedication({ ...newMedication, frequency: text })}
-                            style={YKINAStyle.inputText}
-                        />
-                      </View>
+                      <Dropdown
+                        style={[YKINAStyle.inputContainer, {width: "45%"}, isFocusTimePeriod && { borderColor: Colors.green.text }]}
+                        placeholderStyle={[inputText,{color:'#A9A9A9'}]}
+                        selectedTextStyle={inputText}
+                        inputSearchStyle={inputText}
+                        containerStyle = {YKINAStyle.dropdownContainer}
+                        data={timePeriods}
+                        search
+                        maxHeight={300}
+                        labelField="label"
+                        valueField="value"
+                        placeholder={
+                          !isFocusTimePeriod 
+                            ? (
+                                editRecord 
+                                  ? editingMedication?.timeperiod
+                                  : (newRecord ? 'Select item' : '...')
+                              )
+                            : '...'
+                        }
+                        searchPlaceholder="Search..."
+                        value={selectedTimePeriod}
+                        onFocus={() => setIsFocusTimePeriod(true)}
+                        onBlur={() => setIsFocusTimePeriod(false)}
+                        onChange={item => {
+                          setSelectedTimePeriod(item.value);
+                          setIsFocusTimePeriod(false);
+                        }}               
+                      />
                     </View>
 
                     <View style={YKINAStyle.inputContainer}>
                       <TextInput
-                          placeholder="Start Date"
-                          value={newMedication.timePeriod}
-                          onChangeText={(text) => setNewMedication({ ...newMedication, startDate: text })}
-                          style={YKINAStyle.inputText}
+                        style={inputText}
+                        placeholder={
+                          !isFocusDoseUnit 
+                            ? (
+                                editRecord 
+                                  ? editingMedication?.startdate
+                                  : (newRecord ? 'Start Date' : '...')
+                              )
+                            : '...'
+                        }                        
+                        onChangeText={onStartDateChange}
+                        secureTextEntry
+                        onPress = {startDatePicker}
                       />
+                                            
+                      {showStartDatePicker && (
+                        <DateTimePicker
+                          value={endDate || new Date()} // Use endDate if available; otherwise, show nothing
+                          mode="date"
+                          display="default"
+                          onChange={onStartDateChange}
+                        />
+                      )}
                     </View>
                     <View style={YKINAStyle.inputContainer}>
                       <TextInput
-                          placeholder="End Date"
-                          value={newMedication.endDate}
-                          onChangeText={(text) => setNewMedication({ ...newMedication, endDate: text })}
-                          style={YKINAStyle.inputText}
+                        style={inputText}
+
+                        placeholder={
+                          !isFocusDoseUnit 
+                            ? (
+                                editRecord 
+                                  ? editingMedication?.enddate 
+                                  : (newRecord ? 'End Date' : '...')
+                              )
+                            : '...'
+                        }                                                  
+                        onChangeText={onEndDateChange}
+                        secureTextEntry
+                        onPress = {endDatePicker}
                       />
+                                            
+                      {showEndDatePicker && (
+                        <DateTimePicker
+                          value={endDate || new Date()} // Use endDate if available; otherwise, show nothing
+                          mode="date"
+                          display="default"
+                          onChange={onEndDateChange}
+                        />
+                      )}
                     </View>
-                    <View style={styles.modalButtons}>
-                        <Button title="Save" onPress={handleSaveEdit} />
+                    <View style={{flexDirection:'row', justifyContent:'space-evenly'}}>
+                        <Button title="Save" onPress={handleSave} />
                         <Button title="Cancel" onPress={() => setModalVisible(false)} />
                     </View>
                   </BlurView>
@@ -318,8 +453,8 @@ export default function MedicationScreen() {
             tint="light"
           >
             <TouchableOpacity
-              onPress={() => setModalVisible(true)}  // Opens the modal for adding new medication
-              style={styles.addNewMedicineButton}
+              onPress={() => handleNew()}  // Opens the modal for adding new medication
+              style={YKINAStyle.addNewRecordButton}
             >
               <Ionicons name="add" size={30} color={Colors.white.bright}/>
               </TouchableOpacity>
@@ -331,38 +466,6 @@ export default function MedicationScreen() {
   );
 };
 
-const styles = StyleSheet.create({
-  modalContent: {
-    padding: 20,
-    flex: 1,
-    justifyContent: 'center',
-  },
-  input: {
-    height: 40,
-    borderColor: 'gray',
-    borderWidth: 1,
-    marginBottom: 15,
-    paddingLeft: 10,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-evenly',
-  },
-  addNewMedicineButton: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 40,
-    height: "80%",
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 25,
-    // Shadow for iOS
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    // Elevation for Android
-    elevation: 5,
-  },
-});
+
 
 

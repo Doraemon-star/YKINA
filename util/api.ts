@@ -5,7 +5,10 @@ import AsyncStorageService from '../util/storage';
 
 const api = async () => {
     const authToken = await AsyncStorageService.getItem("jwtToken");
-    const strapiLink = 'http://3.17.60.135:1337/api/';
+    console.log('authToken', authToken);
+    const userDocumentId = await AsyncStorageService.getItem("userDocumentId");
+    console.log('userDocumentIdu', userDocumentId);
+    const strapiLink = 'http://18.118.157.140:1337/api/';
 
     const register = async (username: string, kidName: string, diagnosisRecord: Diagnosis, email: string, password: string) => {       
         try {
@@ -40,7 +43,7 @@ const api = async () => {
                     await AsyncStorageService.setItem('introduction', diagnosisRecord.introduction);
                     await AsyncStorageService.setItem('diagnosisDocumentId', documentId);
                     await AsyncStorageService.setItem('username', username);
-                    await AsyncStorageService.setItem('userId', userData.id);
+                    await AsyncStorageService.setItem('userDocumentId', userData.user.documentId);
                     await AsyncStorageService.setItem('email', email);
                     await AsyncStorageService.setItem('kidName', kidName);
                     await AsyncStorageService.setItem('jwtToken', authToken);
@@ -70,7 +73,9 @@ const api = async () => {
                 password: password
             });
             const responseData = response.data;
+            console.log(responseData);
             await AsyncStorageService.setItem('jwtToken', responseData.jwt);
+            await AsyncStorageService.removeItem('userId');
         
             if (response.status === 200) {
                 return {
@@ -113,10 +118,9 @@ const api = async () => {
         }      
     }
 
-    const updateCurrentStatus = async (userId: string, currentStatus: string) => {
+    const updateCurrentStatus = async (userDocumentId: string, currentStatus: string) => {
         try {
-            console.log(authToken);
-            const response = await axios.put(strapiLink + 'users/'+ userId, 
+            const response = await axios.put(strapiLink + 'users/'+ userDocumentId, 
                 {currentStatus: currentStatus},
                 {
                     headers:{
@@ -206,10 +210,55 @@ const api = async () => {
             const drugNames = drugs.map(drug => drug.drugName);
             return drugNames;
         }catch(error){
-            console.error("Failed to delete medication:", error);
+            console.error("Failed to get drugNames:", error);
             return [];
         }
-    }
+    };
+
+    const getAllDrugUnits = async() => {
+        try {
+            const response = await axios.get(strapiLink + 'medication/allDoseUnits',{
+                headers:{
+                    Authorization: 'Bearer ' + authToken
+                }     
+            });
+            const drugunits = response.data;  
+            return drugunits;
+        }catch(error){
+            console.error("Failed to get drugUnits:", error);
+            return [];
+        }
+    };
+
+    const getAllTimePeriods = async() => {
+        try {
+            const response = await axios.get(strapiLink + 'medication/allTimePeriods',{
+                headers:{
+                    Authorization: 'Bearer ' + authToken
+                }     
+            });
+            const timeperiods = response.data;  
+            return timeperiods;
+        }catch(error){
+            console.error("Failed to get timeperiods:", error);
+            return [];
+        }
+    };
+
+    const getAllMedications = async() => {
+        try {
+            const response = await axios.get(strapiLink + 'medication/' + userDocumentId,{
+                headers:{
+                    Authorization: 'Bearer ' + authToken
+                }     
+            });
+            const medications = response.data;  
+            return medications;
+        }catch(error){
+            console.error("Failed to get all medications:", error);
+            return [];
+        }
+    };
 
          
 
@@ -219,10 +268,13 @@ const api = async () => {
         getAllDiseases,
         updateDiagnosisUserTotal,
         updateCurrentStatus,
+        getAllMedications,
         newMedication,
         updateMedication,
         deleteMedication,
-        getAllDrugNames
+        getAllDrugNames,
+        getAllDrugUnits,
+        getAllTimePeriods
 
     }
 }
