@@ -8,7 +8,7 @@ const api = async () => {
     console.log('authToken', authToken);
     const userDocumentId = await AsyncStorageService.getItem("userDocumentId");
     console.log('userDocumentIdu', userDocumentId);
-    const strapiLink = 'http://18.118.157.140:1337/api/';
+    const strapiLink = 'http://3.16.188.118:1337/api/';
 
     const register = async (username: string, kidName: string, diagnosisRecord: Diagnosis, email: string, password: string) => {       
         try {
@@ -260,7 +260,24 @@ const api = async () => {
         }
     };
 
-         
+    const getDataFromEnclave = async(encryptedData) => {
+        try {
+            const response = await axios.post(strapiLink + 'enclave/send',{              
+                encrypted_data:encryptedData,
+            },
+            {headers:{
+                Authorization: 'Bearer ' + authToken
+            }              
+        });
+            const enclaveData = response.data;
+            return enclaveData;
+        }catch(error){
+            console.error("Failed to get enclave data:", error);
+            return [];
+        }
+    }
+
+
 
     return { 
         register,
@@ -274,7 +291,8 @@ const api = async () => {
         deleteMedication,
         getAllDrugNames,
         getAllDrugUnits,
-        getAllTimePeriods
+        getAllTimePeriods,
+        getDataFromEnclave
 
     }
 }

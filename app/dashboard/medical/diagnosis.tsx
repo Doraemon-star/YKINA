@@ -7,6 +7,7 @@ import { BlurView } from 'expo-blur';
 import {YKINAStyle} from '@/constants/Stylesheet'; 
 import AsyncStorageService from '@/util/storage'; 
 import api from '@/util/api'
+import {encryptMessage,decryptMessage} from '@/util/enclave';
 
 export default function DiagnosisScreen() {
   const [userId, setUserId] = useState('');
@@ -18,10 +19,28 @@ export default function DiagnosisScreen() {
   const [diseaseNameEditing, setDiseaseNameEditing] = useState(false);  
   const [statusEditing, setStatusEditing] = useState(false);  
   const [editedStatus, setEditedStatus] = useState(currentStatus);
+  
+  useEffect(() => {
+    // Define the function to call encryptMessage and handle response
+    const runEncryption = async () => {
+        try {
+          const encryptedNessage = encryptMessage("hello, world");
+          const decryptedMessage = await decryptMessage(encryptedNessage)
+          
+        } catch (error) {
+            console.error("Encryption error:", error);
+        }
+    };
+
+    // Call the function when the page loads
+    runEncryption();
+}, []); //
 
   useEffect(() => {
     const fetchData = async () => {
+
       try {
+
         const [fetchedUserId, fetchedDiseaseName, fetchedIntroduction, fetchedKidName, fetchedCurrentStatus] = await Promise.all([
           AsyncStorageService.getItem('userId'),
           AsyncStorageService.getItem('diseaseName'),
