@@ -24,9 +24,13 @@ export default function DiagnosisScreen() {
     // Define the function to call encryptMessage and handle response
     const runEncryption = async () => {
         try {
-          const encryptedNessage = encryptMessage("hello, world");
+          const data = "hello world";
+          const data1 = {medication:"ppp", dose: "ooo"};
+          const encryptedNessage = encryptMessage(data);
+          console.log("encryptedNessage:\n", encryptedNessage);
           const decryptedMessage = await decryptMessage(encryptedNessage)
-          
+          console.log("decryptedMessage:\n", decryptedMessage);
+ 
         } catch (error) {
             console.error("Encryption error:", error);
         }

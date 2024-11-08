@@ -5,10 +5,10 @@ import AsyncStorageService from '../util/storage';
 
 const api = async () => {
     const authToken = await AsyncStorageService.getItem("jwtToken");
-    console.log('authToken', authToken);
+    //console.log('authToken', authToken);
     const userDocumentId = await AsyncStorageService.getItem("userDocumentId");
-    console.log('userDocumentIdu', userDocumentId);
-    const strapiLink = 'http://3.16.188.118:1337/api/';
+    //console.log('userDocumentId', userDocumentId);
+    const strapiLink = 'http://3.141.20.115:1337/api/';
 
     const register = async (username: string, kidName: string, diagnosisRecord: Diagnosis, email: string, password: string) => {       
         try {
@@ -139,7 +139,7 @@ const api = async () => {
         }
     };
 
-    const newMedication = async (doseamount, doseunit, freq, timeperiod, startdate, userdocumentId, drugname) => {
+    const newMedication = async (doseamount, doseunit, freq, timeperiod, startdate, drugname) => {
         try {       
             const response = await axios.post(strapiLink + 'medication/create', {
                 data:{
@@ -148,7 +148,7 @@ const api = async () => {
                     freq: freq,
                     timeperiod:timeperiod,
                     startdate:startdate,
-                    userdocumentId:userdocumentId
+                    userdocumentId:userDocumentId
                 },
                 
                 headers:{
@@ -269,15 +269,13 @@ const api = async () => {
                 Authorization: 'Bearer ' + authToken
             }              
         });
-            const enclaveData = response.data;
+            const enclaveData = response.data.enclave_data;
             return enclaveData;
         }catch(error){
             console.error("Failed to get enclave data:", error);
             return [];
         }
     }
-
-
 
     return { 
         register,

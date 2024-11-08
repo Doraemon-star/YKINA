@@ -18,6 +18,8 @@ import Colors from '@/constants/Colors';
 import api from '@/util/api';
 import { Dropdown } from 'react-native-element-dropdown';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import {encryptMessage,decryptMessage} from '@/util/enclave';
+
 
 type medication= {
   drugname?: string,
@@ -129,7 +131,6 @@ export default function MedicationScreen() {
 
   // Handle filtering the drug list based on input
   
-
   const handleNew = () => {
         setModalVisible(true);
         setNewRecord(true);
@@ -187,13 +188,33 @@ export default function MedicationScreen() {
   };
 
   // Handle Save Edit
-  const handleSave = () => {
-    setMedications((prevMedications) =>
-      prevMedications.map((med) =>
-        med.id === editingMedication.id ? newMedication : med
-      )
-    );
+  const handleSave = async () => {
+    if (newRecord) {
+      const {drugname, doseamount,doseunit,freq,timeperiod,startdate} = newMedication;
+      try {
+        const apiInstance = await api();
+        await apiInstance.newMedication(doseamount, doseunit, freq, timeperiod, startdate, drugname); // Adjust this to match your API call
+        fetchMedications(); // Refresh the list
+      } catch (error) {
+        console.error('Error saving medication:', error);
+      }
+    } else if (editRecord && editingMedication) {
+      // Handle editing an existing medication
+      const {drugname, doseamount,doseunit,freq,timeperiod,startdate,enddate,medDocumentId} = editingMedication;
+  
+      try {
+        const apiInstance = await api();
+        await apiInstance.updateMedication(doseamount, doseunit, freq, timeperiod, startdate, enddate,medDocumentId ); // Adjust this to match your API call
+        fetchMedications(); // Refresh the list
+      } catch (error) {
+        console.error('Error updating medication:', error);
+      }
+    }
+  
     setModalVisible(false);
+    setNewRecord(false);
+    setEditRecord(false);
+    setNewMedication({});
     setEditingMedication(null);
   };
 
@@ -403,7 +424,7 @@ export default function MedicationScreen() {
                                             
                       {showStartDatePicker && (
                         <DateTimePicker
-                          value={endDate || new Date()} // Use endDate if available; otherwise, show nothing
+                          value={startDate || new Date()} // Use endDate if available; otherwise, show nothing
                           mode="date"
                           display="default"
                           onChange={onStartDateChange}

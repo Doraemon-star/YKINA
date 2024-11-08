@@ -41,27 +41,33 @@ imlt/xdrrvWyC0sRqK/deLgBKQTQBvmtehYgdBs8R7KttvqCQl4=
 const enclave_pub = forge.pki.publicKeyFromPem(enclave_key);
 const private_key = forge.pki.privateKeyFromPem(priv);
      
-
-
 export function encryptMessage(data)  {  
-    console.log("data:", data);
-    const byteData = forge.util.encodeUtf8(data); 
-    const encryptedMessage = enclave_pub.encrypt(byteData);
+    let encryptedData: string;
+    // Check if the input is an object, and if so, convert to a JSON string
+    if (typeof data === 'object') {
+        encryptedData = JSON.stringify(data); // Convert object to JSON string
+    } else {
+        encryptedData = data; // If it's already a string, use it as is
+    }
+
+    const encryptedMessage = enclave_pub.encrypt(encryptedData);
+    //console.log("encryptedMessage",encryptedMessage);
+
     const base64EncryptedMessage = forge.util.encode64(encryptedMessage);
-    console.log('encryptedMessage',base64EncryptedMessage);
+    //console.log("base64EncryptedMessage",base64EncryptedMessage);
+
     return base64EncryptedMessage;
 }
 
 export async function decryptMessage(data){
-    const pub_key = forge.pki.publicKeyToPem(enclave_pub);
-
     const apiInstance = await api();
     const encryptedData = await apiInstance.getDataFromEnclave(data);
-    console.log('encryptedData from enclave\n ', encryptedData);
-    const decryptedDataBytes = private_key.decrypt(encryptedData);  
-    const decryptedDataString = forge.util.decodeUtf8(decryptedDataBytes); // Convert bytes back to string
+    //console.log('encryptedData from enclave\n ', encryptedData);
 
-    console.log("plaintextData:\n", decryptedDataString);
+    const dencryptedDecodeData = forge.util.decode64(encryptedData);
+    const decryptedData= private_key.decrypt(dencryptedDecodeData);  
+    const decryptedDataString = forge.util.decodeUtf8(decryptedData); // Convert bytes back to string
+    //console.log("decryptedDataString",decryptedDataString);
     return decryptedDataString;
 
 }
