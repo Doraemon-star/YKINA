@@ -1,18 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ImageBackground, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import inspiringSentences from '../constants/inspiringSentences'; 
 import  Colors  from '../constants/Colors'; 
 import {YKINAStyle} from '@/constants/Stylesheet'; 
+import api from '@/util/api';
+
 
 export default function Home() {
   const router = useRouter();
   const [quote, setQuote] = useState('');
+  
 
   useEffect(() => {
     // Randomly select an inspiring sentence
-    const randomQuote = inspiringSentences[Math.floor(Math.random() * inspiringSentences.length)];
-    setQuote(randomQuote);
+    const fetchInspiringSentences = async () => {
+      try {
+        const apiInstance = await api();
+        const sentences = await apiInstance.getInspiringSentences();
+  
+        // Randomly select a sentence after fetching
+        const randomQuote = sentences[Math.floor(Math.random() * sentences.length)];
+        setQuote(randomQuote);
+      } catch (error) {
+        console.error("Failed to fetch sentences:", error);
+      }
+    };
+  
+    fetchInspiringSentences();
 
     // Automatically navigate to login after 3 seconds
     const timer = setTimeout(() => {

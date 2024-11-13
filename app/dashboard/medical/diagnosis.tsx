@@ -7,7 +7,6 @@ import { BlurView } from 'expo-blur';
 import {YKINAStyle} from '@/constants/Stylesheet'; 
 import AsyncStorageService from '@/util/storage'; 
 import api from '@/util/api'
-import {encryptMessage,decryptMessage} from '@/util/enclave';
 
 export default function DiagnosisScreen() {
   const [userId, setUserId] = useState('');

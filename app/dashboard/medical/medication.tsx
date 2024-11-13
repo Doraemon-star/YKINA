@@ -3,7 +3,6 @@ import {
   View,
   FlatList,
   Alert,
-  StyleSheet,
   ImageBackground,
   TextInput,
   Button,
@@ -18,8 +17,6 @@ import Colors from '@/constants/Colors';
 import api from '@/util/api';
 import { Dropdown } from 'react-native-element-dropdown';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import {encryptMessage,decryptMessage} from '@/util/enclave';
-
 
 type medication= {
   drugname?: string,
@@ -30,107 +27,73 @@ type medication= {
   startdate?: string,
   enddate?:string,
   status?: string,
-  medDocumentId?: string,
+  medDocumentId?: string
 }
+
 export default function MedicationScreen() {
 
   //#region useState
   const [medications, setMedications] = useState<medication[]>([]);
-  const [newMedication, setNewMedication] = useState<medication>({});
   const [editingMedication, setEditingMedication] = useState<medication | null>(null);
   const [isModalVisible, setModalVisible] = useState(false);
   const [editRecord, setEditRecord] = useState(false);
   const [newRecord, setNewRecord]= useState(false);
   
-  const [drugNames, setDrugNames] = useState<string[]>([]);
-  const [drugUnits, setDrugUnits] = useState<string[]>([]);
-  const [timePeriods, setTimePeriods] = useState<string[]>([]);
+  // Dropdown lists
+  const [drugNames, setDrugNames] = useState<{label:string;value:number}[]>([]);
+  const [drugUnits, setDrugUnits] = useState<{label:string;value:number}[]>([]);
+  const [timePeriods, setTimePeriods] = useState<{label:string;value:number}[]>([]);
 
+  // Dropdown lists focus
   const [isFocusDrugName, setIsFocusDrugName] = useState(false);
   const [isFocusDoseUnit, setIsFocusDoseUnit] = useState(false);
   const [isFocusTimePeriod, setIsFocusTimePeriod] = useState(false);
 
+  // Medication fields
   const [selectedDrugName, setSelectedDrugName] = useState('');
+  const [doseAmount, setDoseamount] = useState('');
   const [selectedDoseUnit, setSelectedDoseUnit] = useState('');
+  const [freq, setFreq] = useState('');
   const [selectedTimePeriod, setSelectedTimePeriod] = useState(''); 
-
-  const [startDate, setStartDate] = useState<Date>();
-  const [endDate, setEndDate] = useState<Date>();
-  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
-  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   //#endregion
 
-  const fetchDrugNames = async () => {
-    try {
-      const apiInstance = await api();
-      const allDrugNames = await apiInstance.getAllDrugNames();
-      const formattedData = allDrugNames.map((item) => ({
-        label: item,
-        value: item 
-    }));
-      setDrugNames(formattedData); 
-    } catch (error) {
-      console.error('Error fetching drug names:', error);
-    }
-  };
-
-  const fetchMedications = async () => {
-    try {
-      const apiInstance = await api();
-      const allDrugUnits = await apiInstance.getAllMedications();
-      const formattedData = allDrugUnits.map((item) => ({
-        drugname: item.drug.drugName,
-        doseamount: item.doseAmount,
-        doseunit: item.doseUnit,
-        freq: item.frequency,
-        timeperiod: item.timePeriod,
-        startdate: item.startDate,
-        enddate:item.endDate,
-        status: item.endDate ? 'Inactive' : 'Active',
-        medDocumentId: item.documentId,
-      }));
-      setMedications(formattedData); 
-    } catch (error) {
-      console.error('Error fetching all medications:', error);
-    }
-  };
-
-  const fetchDrugUnits = async () => {
-    try {
-      const apiInstance = await api();
-      const allDrugUnits = await apiInstance.getAllDrugUnits();
-      const formattedData = allDrugUnits.map((item) => ({
-        label: item,
-        value: item 
-      }));
-      setDrugUnits(formattedData); 
-    } catch (error) {
-      console.error('Error fetching drug units:', error);
-    }
-  };
-  const fetchTimePeriods = async () => {
-    try {
-      const apiInstance = await api();
-      const allTimePeriods = await apiInstance.getAllTimePeriods();
-      const formattedData = allTimePeriods.map((item) => ({
-        label: item,
-        value: item 
-      }));
-      setTimePeriods(formattedData); 
-    } catch (error) {
-      console.error('Error fetching drug units:', error);
-    }
-  };
-
-  useEffect(() => { 
-    fetchDrugNames();
-    fetchDrugUnits();
-    fetchTimePeriods();
-    fetchMedications();
-  }, []);
-
-  // Handle filtering the drug list based on input
+  useEffect(() => {
+    const fetchAllData = async () => {
+      try {
+        const apiInstance = await api();
+        const [allDrugNames, allDrugUnits, allTimePeriods, allMedications] = await Promise.all([
+          apiInstance.getAllDrugNames(),
+          apiInstance.getAllDrugUnits(),
+          apiInstance.getAllTimePeriods(),
+          apiInstance.getAllMedications(),
+        ]);
+        const formattedMedications = allMedications.map(item => ({
+          drugname: item.drugName,
+          doseamount: item.doseAmount,
+          doseunit: item.doseUnit,
+          freq: item.frequency,
+          timeperiod: item.timePeriod,
+          startdate: item.startDate,
+          enddate: item.endDate,
+          status: item.endDate ? 'Inactive' : 'Active',
+          medDocumentId: item.documentId,
+        }));
   
+        setDrugNames(allDrugNames);
+        setDrugUnits(allDrugUnits);
+        setTimePeriods(allTimePeriods);
+        setMedications(formattedMedications);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+    fetchAllData();
+  }, []);
+  
+
+  // Handle New
   const handleNew = () => {
         setModalVisible(true);
         setNewRecord(true);
@@ -152,6 +115,13 @@ export default function MedicationScreen() {
             onPress: () => {
               if (medication) {
                 setEditingMedication(medication);
+                setSelectedDrugName(medication.drugname || '');
+                setDoseamount(medication.doseamount || '');
+                setSelectedDoseUnit(medication.doseunit || '');
+                setFreq(medication.freq || '');
+                setSelectedTimePeriod(medication.timeperiod || '');
+                setStartDate(medication.startdate ? medication.startdate : '');
+                setEndDate(medication.enddate ? medication.enddate : '');
                 setModalVisible(true);
                 setEditRecord(true);
                 setNewRecord(false);
@@ -187,35 +157,50 @@ export default function MedicationScreen() {
     );
   };
 
-  // Handle Save Edit
-  const handleSave = async () => {
-    if (newRecord) {
-      const {drugname, doseamount,doseunit,freq,timeperiod,startdate} = newMedication;
-      try {
-        const apiInstance = await api();
-        await apiInstance.newMedication(doseamount, doseunit, freq, timeperiod, startdate, drugname); // Adjust this to match your API call
-        fetchMedications(); // Refresh the list
-      } catch (error) {
-        console.error('Error saving medication:', error);
-      }
-    } else if (editRecord && editingMedication) {
-      // Handle editing an existing medication
-      const {drugname, doseamount,doseunit,freq,timeperiod,startdate,enddate,medDocumentId} = editingMedication;
-  
-      try {
-        const apiInstance = await api();
-        await apiInstance.updateMedication(doseamount, doseunit, freq, timeperiod, startdate, enddate,medDocumentId ); // Adjust this to match your API call
-        fetchMedications(); // Refresh the list
-      } catch (error) {
-        console.error('Error updating medication:', error);
-      }
-    }
-  
+  const resetForm = () => {
+    setSelectedDoseUnit('');
+    setSelectedDrugName('');
+    setDoseamount('');
+    setFreq('');
+    setSelectedTimePeriod('');
+    setStartDate('');
+    setEndDate('');
+    setEditingMedication(null);
     setModalVisible(false);
     setNewRecord(false);
     setEditRecord(false);
-    setNewMedication({});
-    setEditingMedication(null);
+  };
+
+  // Handle Save Edit
+  const handleSave = async () => {
+    try {
+      const apiInstance = await api();
+      if (newRecord) {
+        await apiInstance.newMedication(
+          selectedDrugName, 
+          doseAmount, 
+          selectedDoseUnit, 
+          freq, 
+          selectedTimePeriod, 
+          startDate, 
+          endDate
+        );
+      } else if (editRecord && editingMedication) {
+        await apiInstance.updateMedication(
+          selectedDrugName,
+          doseAmount,
+          selectedDoseUnit,
+          freq,
+          selectedTimePeriod,
+          startDate,
+          endDate,
+          editingMedication.medDocumentId
+        );
+      }
+    } catch (error) {
+      console.error('Error saving medication:', error);
+    }
+    resetForm();
   };
 
   // Render Medication Item
@@ -244,25 +229,25 @@ export default function MedicationScreen() {
   );
 
   //#region date picker
-  const endDatePicker = () => {
-    setShowEndDatePicker(true);
-  };
-  const startDatePicker = () => {
-    setShowStartDatePicker(true);
-  };
-
   const onStartDateChange = (event: any, selectedDate?: Date | undefined) => {
-    setShowStartDatePicker(false);
     if (selectedDate) {
-      setStartDate(selectedDate);
+      const date = formatDate(selectedDate);
+      setStartDate(date);
     }
   };
 
   const onEndDateChange = (event: any, selectedDate?: Date | undefined) => {
-    setShowEndDatePicker(false);
     if (selectedDate) {
-      setEndDate(selectedDate);
+      const date = formatDate(selectedDate);
+      setEndDate(date);
     }
+  };
+
+  // Format the selected date to a readable format (e.g., "MM/DD/YYYY")
+  const formatDate = (date: Date | undefined) => {
+    if (!date) return '';
+    const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: '2-digit', day: '2-digit' };
+    return date.toLocaleDateString(undefined, options);
   };
   //#endregion
    
@@ -278,17 +263,19 @@ export default function MedicationScreen() {
           <FlatList
               data={medications}
               renderItem={renderMedication}
-              keyExtractor={(item) => item.medDocumentId.toString()}    
+              keyExtractor={(item) => item.medDocumentId!.toString()}    
               style={{ flex: 1, width: '100%' }}       
           />
           
           <Modal visible={isModalVisible} animationType="slide">
               <ImageBackground source={require('@/assets/images/image16.png')} style={YKINAStyle.imageIackground}>
                 <View style={YKINAStyle.overlayCenter}>
-                  <BlurView intensity={10} tint="light" style={YKINAStyle.frostedGlass}>              
-                    <Dropdown
+                  <BlurView intensity={10} tint="light" style={YKINAStyle.frostedGlass}>  
+
+                    {/* Medication Names */}            
+                    <Dropdown 
                       style={[YKINAStyle.inputContainer, isFocusDrugName && { borderColor: Colors.green.text }]}
-                      placeholderStyle={[inputText,{color:'#A9A9A9'}]}
+                      placeholderStyle={[inputText,{color: editRecord ? 'black' : '#A9A9A9' }]}
                       selectedTextStyle={inputText}
                       inputSearchStyle={inputText}
                       containerStyle = {YKINAStyle.dropdownContainer}
@@ -311,28 +298,25 @@ export default function MedicationScreen() {
                       onFocus={() => setIsFocusDrugName(true)}
                       onBlur={() => setIsFocusDrugName(false)}
                       onChange={item => {
-                        setSelectedDrugName(item.value);
+                        setSelectedDrugName(item.label);
                         setIsFocusDrugName(false);
                       }}               
                     />
-                  
-                    <View style={YKINAStyle.medicationRowContainer}>
+
+                    {/* Units */}
+                    <View style={YKINAStyle.medicationRowContainer}> 
                       <View style={[YKINAStyle.inputContainer, {width: "45%",marginRight: 10}]}>
                         <TextInput
                             placeholder={editRecord ? editingMedication?.doseamount:"Dose Amount"}
-                            value={editRecord ? editingMedication?.doseamount:newMedication.doseamount}
+                            value={editRecord ? editingMedication?.doseamount:doseAmount}
                             keyboardType="numeric"
-                            onChangeText={(text) =>{
-                              editRecord? setEditingMedication({ ...editingMedication, doseamount: text })
-                              :setNewMedication({ ...newMedication, doseamount: text })
-
-                            } }
+                            onChangeText={(text) =>{setDoseamount(text)} }
                             style={inputText}
                         />
                       </View>
                       <Dropdown
                         style={[YKINAStyle.inputContainer, {width: "45%"}, isFocusDoseUnit && { borderColor: Colors.green.text }]}
-                        placeholderStyle={[inputText,{color:'#A9A9A9'}]}
+                        placeholderStyle={[inputText,{color: editRecord ? 'black' : '#A9A9A9' }]}
                         selectedTextStyle={inputText}
                         inputSearchStyle={inputText}
                         containerStyle = {YKINAStyle.dropdownContainer}
@@ -346,7 +330,7 @@ export default function MedicationScreen() {
                             ? (
                                 editRecord 
                                   ? editingMedication?.doseunit 
-                                  : (newRecord ? 'Select unit' : '...')
+                                  : 'Select unit'
                               )
                             : '...'
                         }
@@ -355,28 +339,25 @@ export default function MedicationScreen() {
                         onFocus={() => setIsFocusDoseUnit(true)}
                         onBlur={() => setIsFocusDoseUnit(false)}
                         onChange={item => {
-                          setSelectedDoseUnit(item.value);
+                          setSelectedDoseUnit(item.label);
                           setIsFocusDoseUnit(false);
                         }}               
                       />
                     </View>
 
-                    <View style={YKINAStyle.medicationRowContainer}>
+                    {/*Frequency*/}
+                    <View style={YKINAStyle.medicationRowContainer}> 
                       <View style={[YKINAStyle.inputContainer, {width: "45%",marginRight: 10}]}>
                         <TextInput
                             placeholder={editRecord ? editingMedication?.freq:"Frequency"}
-                            value={editRecord ? editingMedication?.freq:newMedication.freq}
-                            onChangeText={(text) => {
-                              editRecord? setEditingMedication({ ...editingMedication, freq: text })
-                              :setNewMedication({ ...newMedication, freq: text })
-
-                            } }
+                            value={editRecord ? editingMedication?.freq:freq}
+                            onChangeText={(text) => {setFreq(text)}}
                             style={inputText}
                         />
                       </View>
                       <Dropdown
                         style={[YKINAStyle.inputContainer, {width: "45%"}, isFocusTimePeriod && { borderColor: Colors.green.text }]}
-                        placeholderStyle={[inputText,{color:'#A9A9A9'}]}
+                        placeholderStyle={[inputText,{color: editRecord ? 'black' : '#A9A9A9' }]}
                         selectedTextStyle={inputText}
                         inputSearchStyle={inputText}
                         containerStyle = {YKINAStyle.dropdownContainer}
@@ -390,7 +371,7 @@ export default function MedicationScreen() {
                             ? (
                                 editRecord 
                                   ? editingMedication?.timeperiod
-                                  : (newRecord ? 'Select item' : '...')
+                                  : 'Select freq' 
                               )
                             : '...'
                         }
@@ -399,64 +380,57 @@ export default function MedicationScreen() {
                         onFocus={() => setIsFocusTimePeriod(true)}
                         onBlur={() => setIsFocusTimePeriod(false)}
                         onChange={item => {
-                          setSelectedTimePeriod(item.value);
+                          setSelectedTimePeriod(item.label);
                           setIsFocusTimePeriod(false);
                         }}               
                       />
                     </View>
 
-                    <View style={YKINAStyle.inputContainer}>
-                      <TextInput
-                        style={inputText}
-                        placeholder={
-                          !isFocusDoseUnit 
-                            ? (
-                                editRecord 
-                                  ? editingMedication?.startdate
-                                  : (newRecord ? 'Start Date' : '...')
-                              )
-                            : '...'
-                        }                        
-                        onChangeText={onStartDateChange}
-                        secureTextEntry
-                        onPress = {startDatePicker}
-                      />
-                                            
-                      {showStartDatePicker && (
-                        <DateTimePicker
-                          value={startDate || new Date()} // Use endDate if available; otherwise, show nothing
-                          mode="date"
-                          display="default"
-                          onChange={onStartDateChange}
+                    {/*Start Date*/}
+                    <View style={YKINAStyle.inputContainer}>  
+                    <TouchableOpacity>
+                        <TextInput
+                          style={inputText}
+                          value={startDate} // Show formatted date if selected
+                          placeholder={
+                            editRecord 
+                              ? (editingMedication?.startdate ? editingMedication.startdate : 'Start Date') 
+                              : 'Start Date'
+                          }
+                          placeholderTextColor={editRecord ? 'black' : '#A9A9A9'}
+                          editable={false} // Prevent manual input
+                          pointerEvents="none" // Prevent keyboard from appearing
                         />
-                      )}
+                      </TouchableOpacity>                                                          
+                      <DateTimePicker
+                        value={new Date()} 
+                        mode="date"
+                        display="default"
+                        onChange={onStartDateChange}
+                      />                  
                     </View>
-                    <View style={YKINAStyle.inputContainer}>
-                      <TextInput
-                        style={inputText}
 
-                        placeholder={
-                          !isFocusDoseUnit 
-                            ? (
-                                editRecord 
-                                  ? editingMedication?.enddate 
-                                  : (newRecord ? 'End Date' : '...')
-                              )
-                            : '...'
-                        }                                                  
-                        onChangeText={onEndDateChange}
-                        secureTextEntry
-                        onPress = {endDatePicker}
-                      />
-                                            
-                      {showEndDatePicker && (
-                        <DateTimePicker
-                          value={endDate || new Date()} // Use endDate if available; otherwise, show nothing
-                          mode="date"
-                          display="default"
-                          onChange={onEndDateChange}
+                    {/*End Date*/}
+                    <View style={YKINAStyle.inputContainer}> 
+                      <TouchableOpacity>
+                        <TextInput
+                          style={inputText}
+                          value={endDate} // Show formatted date if selected
+                          placeholder={
+                            editRecord 
+                              ? (editingMedication?.enddate ? editingMedication.enddate : 'End Date') 
+                              : 'End Date'
+                          }
+                          placeholderTextColor={editRecord ? 'black' : '#A9A9A9'}
+                          editable={false} // Prevent manual input
+                          pointerEvents="none" // Prevent keyboard from appearing
                         />
-                      )}
+                      </TouchableOpacity>                                    
+                      <DateTimePicker
+                        value={new Date()} 
+                        display="default"
+                        onChange={onEndDateChange}
+                      />   
                     </View>
                     <View style={{flexDirection:'row', justifyContent:'space-evenly'}}>
                         <Button title="Save" onPress={handleSave} />
