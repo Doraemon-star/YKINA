@@ -64,15 +64,31 @@ export function encrypt_enclave(data)  {
 
 export async function decryptMessage(data){
     const apiInstance = await api();
-    const encryptedData = await apiInstance.getDataFromEnclave(data);
+    const request_data = {encrypted_data:data}
+    const encryptedData = await apiInstance.getDataFromEnclave(request_data);
     console.log('encryptedData from enclave\n ', encryptedData);
 
     const dencryptedDecodeData = forge.util.decode64(encryptedData);
     const decryptedData= private_key.decrypt(dencryptedDecodeData);  
     const decryptedDataString = forge.util.decodeUtf8(decryptedData); // Convert bytes back to string
-    //console.log("decryptedDataString",decryptedDataString);
+    console.log("decryptedDataString",decryptedDataString);
     return decryptedDataString;
 
+}
+
+function signData(data) {
+    const md = forge.md.sha256.create();
+    md.update(data,'utf8');
+    return forge.util.encode64(private_key.sign(md));   
+}
+
+export async function verifyData(originalData,requestdata) {
+    const apiInstance = await api();  
+    const signature_data = signData(originalData);
+    const encrypted_request_data = encrypt_enclave(requestdata);
+    const request_data = {signature:signature_data, original_data:originalData,request_data:encrypted_request_data}
+    const response = await apiInstance.getDataFromEnclave(request_data);
+    return (response == "Signature is valid!");
 }
 
 const api = async () => {
@@ -80,7 +96,7 @@ const api = async () => {
     //console.log('authToken', authToken);
     const userDocumentId = await AsyncStorageService.getItem("userDocumentId");
     console.log('userDocumentId', userDocumentId);
-    const strapiLink = 'http://18.221.11.86:1337/api/';
+    const strapiLink = 'http://3.128.91.188:1337/api/';
 
     const register = async (username: string, kidName: string, diagnosisRecord: Diagnosis, email: string, password: string) => {       
         try {
@@ -231,12 +247,12 @@ const api = async () => {
         try {     
             const encryptedData = {
                 drugname: encrypt_enclave(drugname),
-                doseamount: encrypt_enclave(doseamount),
-                doseunit: encrypt_enclave(doseunit),
-                freq: encrypt_enclave(freq),
-                timeperiod: encrypt_enclave(timeperiod),
-                startdate: encrypt_enclave(startdate),
-                enddate: encrypt_enclave(enddate),
+                doseamount: doseamount,
+                doseunit: doseunit,
+                freq: freq,
+                timeperiod: timeperiod,
+                startdate: startdate,
+                enddate: enddate,
                 userdocumentId: userDocumentId
             };
             console.log("encryptedData",encryptedData);
@@ -254,9 +270,10 @@ const api = async () => {
     };
 
     const updateMedication  = async (drugname,doseamount, doseunit, freq, timeperiod, startdate, enddate,medDocumentId ) => {
-        try {       
+        try {  
+            const encrypted_drugname = encrypt_enclave(drugname)
             const response = await axios.post(strapiLink + 'medication/update', {     
-                    drugname:drugname,
+                    drugname:encrypted_drugname,
                     doseamount:doseamount,
                     doseunit:doseunit,
                     freq: freq,
@@ -345,8 +362,8 @@ const api = async () => {
                 }     
             });
             const medications = response.data; 
-            const formattedMedications = medications.map(item => ({
-                drugname: item.drugName,
+            const formattedMedications = await Promise.all(medications.map(async (item) => ({
+                drugname: await decryptMessage(item.drugName),  // Wait for decryption to complete
                 doseamount: item.doseAmount,
                 doseunit: item.doseUnit,
                 freq: item.frequency,
@@ -354,23 +371,19 @@ const api = async () => {
                 startdate: item.startDate,
                 enddate: item.endDate,
                 medDocumentId: item.documentId,
-              }));
-            const medications_object = {medications:formattedMedications};        
-            const decrypted_medications = decryptMessage(medications_object);       
-            console.log("All Medications: \n", decrypted_medications);
-            return decrypted_medications;
+            })));
+                   
+            return formattedMedications;
         }catch(error){
             console.error("Failed to get all medications:", error);
             return [];
         }
     };
 
-    const getDataFromEnclave = async(encryptedData) => {
-        console.log("encryptedData*********:\n",encryptedData);
+    const getDataFromEnclave = async(data) => {
         try {
-            const response = await axios.post(strapiLink + 'enclave/send',{              
-                encryptedData,
-            },
+            const response = await axios.post(strapiLink + 'enclave/send',             
+            data,         
             {headers:{
                 Authorization: 'Bearer ' + authToken
             }              

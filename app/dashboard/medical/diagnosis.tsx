@@ -7,6 +7,7 @@ import { BlurView } from 'expo-blur';
 import {YKINAStyle} from '@/constants/Stylesheet'; 
 import AsyncStorageService from '@/util/storage'; 
 import api from '@/util/api'
+import {encrypt_enclave,decryptMessage,verifyData} from '@/util/api';
 
 export default function DiagnosisScreen() {
   const [userId, setUserId] = useState('');
@@ -24,11 +25,9 @@ export default function DiagnosisScreen() {
     const runEncryption = async () => {
         try {
           const data = "hello world";
-          const data1 = {medication:"ppp", dose: "ooo"};
-          const encryptedNessage = encryptMessage(data);
-          console.log("encryptedNessage:\n", encryptedNessage);
-          const decryptedMessage = await decryptMessage(encryptedNessage)
-          console.log("decryptedMessage:\n", decryptedMessage);
+          const request_data = "medication";
+          const response = await verifyData(data,request_data);
+          console.log("response:****\n", response);
  
         } catch (error) {
             console.error("Encryption error:", error);

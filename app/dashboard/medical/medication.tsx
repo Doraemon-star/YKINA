@@ -14,9 +14,11 @@ import { BlurView } from 'expo-blur';
 import {YKINAStyle} from '@/constants/Stylesheet'; 
 import { Ionicons } from '@expo/vector-icons'; 
 import Colors from '@/constants/Colors'; 
-import api from '@/util/api';
+import api,{verifySignature} from '@/util/api';
 import { Dropdown } from 'react-native-element-dropdown';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import AsyncStorageService from '@//util/storage'; 
+
 
 type medication= {
   drugname?: string,
@@ -55,36 +57,44 @@ export default function MedicationScreen() {
   const [selectedDoseUnit, setSelectedDoseUnit] = useState('');
   const [freq, setFreq] = useState('');
   const [selectedTimePeriod, setSelectedTimePeriod] = useState(''); 
+  const [newStartDate, setNewStartDate] = useState<Date>();
+  const [newEndDate, setNewEndDate] = useState<Date>();
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   //#endregion
 
+  const fetchMedications = async(apiInstance) => {
+    const allMedications = await apiInstance.getAllMedications();
+    const formattedMedications = allMedications.map(item => ({
+      drugname: item.drugname,
+      doseamount: item.doseamount,
+      doseunit: item.doseunit,
+      freq: item.freq,
+      timeperiod: item.timeperiod,
+      startdate: item.startdate,
+      enddate: item.enddate,
+      status: item.enddate ? 'Inactive' : 'Active',
+      medDocumentId: item.medDocumentId,
+    }));
+    console.log("formattedMedications:\n",formattedMedications);
+    return formattedMedications;
+
+  }  
   useEffect(() => {
+    
     const fetchAllData = async () => {
       try {
         const apiInstance = await api();
-        const [allDrugNames, allDrugUnits, allTimePeriods, allMedications] = await Promise.all([
+        const [allDrugNames, allDrugUnits, allTimePeriods] = await Promise.all([
           apiInstance.getAllDrugNames(),
           apiInstance.getAllDrugUnits(),
-          apiInstance.getAllTimePeriods(),
-          apiInstance.getAllMedications(),
+          apiInstance.getAllTimePeriods(),       
         ]);
-        const formattedMedications = allMedications.map(item => ({
-          drugname: item.drugName,
-          doseamount: item.doseAmount,
-          doseunit: item.doseUnit,
-          freq: item.frequency,
-          timeperiod: item.timePeriod,
-          startdate: item.startDate,
-          enddate: item.endDate,
-          status: item.endDate ? 'Inactive' : 'Active',
-          medDocumentId: item.documentId,
-        }));
-  
+        const allMedications = await fetchMedications(apiInstance); 
         setDrugNames(allDrugNames);
         setDrugUnits(allDrugUnits);
         setTimePeriods(allTimePeriods);
-        setMedications(formattedMedications);
+        setMedications(allMedications);
       } catch (error) {
         console.error('Error fetching data:', error);
       }
@@ -92,7 +102,6 @@ export default function MedicationScreen() {
     fetchAllData();
   }, []);
   
-
   // Handle New
   const handleNew = () => {
         setModalVisible(true);
@@ -135,6 +144,35 @@ export default function MedicationScreen() {
     
   };
 
+  // Handle Refill
+  const  handleRefill = async (medication) => {
+    const userDocumentId = await AsyncStorageService.getItem("userDocumentId");
+    Alert.alert(
+      "Refill Reuqest",
+      `"Medication: " ${medication.drugname }`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "OK",
+          onPress: () => {
+            if (medication) {
+              const verify_data = userDocumentId;
+              const verification = verifySignature(userDocumentId);
+              
+            } else {
+              console.error("Invalid medication object");
+            }
+          },
+        },
+      ]
+    );
+  
+
+  }
+
   // Handle Delete
   const handleDelete = (id) => {
     Alert.alert(
@@ -157,7 +195,10 @@ export default function MedicationScreen() {
     );
   };
 
-  const resetForm = () => {
+  const handleCancel = () => {
+    setModalVisible(false);
+    setNewRecord(false);
+    setEditRecord(false);
     setSelectedDoseUnit('');
     setSelectedDrugName('');
     setDoseamount('');
@@ -166,10 +207,7 @@ export default function MedicationScreen() {
     setStartDate('');
     setEndDate('');
     setEditingMedication(null);
-    setModalVisible(false);
-    setNewRecord(false);
-    setEditRecord(false);
-  };
+  }
 
   // Handle Save Edit
   const handleSave = async () => {
@@ -197,14 +235,28 @@ export default function MedicationScreen() {
           editingMedication.medDocumentId
         );
       }
+      setModalVisible(false);
+      const allMedications = await fetchMedications(apiInstance); 
+      setMedications(allMedications);
+      setNewRecord(false);
+      setEditRecord(false);
+      setSelectedDoseUnit('');
+      setSelectedDrugName('');
+      setDoseamount('');
+      setFreq('');
+      setSelectedTimePeriod('');
+      setNewStartDate(undefined);
+      setNewEndDate(undefined);
+      setStartDate('');
+      setEndDate('');
+      setEditingMedication(null);
     } catch (error) {
       console.error('Error saving medication:', error);
     }
-    resetForm();
   };
 
   // Render Medication Item
-  const renderMedication = ({ item }) => (
+  const renderMedication = ({ item }: { item: medication }) => (
       <BlurView
         style={YKINAStyle.medicationItem}
         intensity={50} 
@@ -231,6 +283,7 @@ export default function MedicationScreen() {
   //#region date picker
   const onStartDateChange = (event: any, selectedDate?: Date | undefined) => {
     if (selectedDate) {
+      setNewStartDate(selectedDate);
       const date = formatDate(selectedDate);
       setStartDate(date);
     }
@@ -238,6 +291,7 @@ export default function MedicationScreen() {
 
   const onEndDateChange = (event: any, selectedDate?: Date | undefined) => {
     if (selectedDate) {
+      setNewEndDate(selectedDate);
       const date = formatDate(selectedDate);
       setEndDate(date);
     }
@@ -263,7 +317,7 @@ export default function MedicationScreen() {
           <FlatList
               data={medications}
               renderItem={renderMedication}
-              keyExtractor={(item) => item.medDocumentId!.toString()}    
+              keyExtractor={(item) => item.medDocumentId as string}    
               style={{ flex: 1, width: '100%' }}       
           />
           
@@ -308,7 +362,7 @@ export default function MedicationScreen() {
                       <View style={[YKINAStyle.inputContainer, {width: "45%",marginRight: 10}]}>
                         <TextInput
                             placeholder={editRecord ? editingMedication?.doseamount:"Dose Amount"}
-                            value={editRecord ? editingMedication?.doseamount:doseAmount}
+                            value={doseAmount}
                             keyboardType="numeric"
                             onChangeText={(text) =>{setDoseamount(text)} }
                             style={inputText}
@@ -350,7 +404,7 @@ export default function MedicationScreen() {
                       <View style={[YKINAStyle.inputContainer, {width: "45%",marginRight: 10}]}>
                         <TextInput
                             placeholder={editRecord ? editingMedication?.freq:"Frequency"}
-                            value={editRecord ? editingMedication?.freq:freq}
+                            value={freq}
                             onChangeText={(text) => {setFreq(text)}}
                             style={inputText}
                         />
@@ -392,18 +446,15 @@ export default function MedicationScreen() {
                         <TextInput
                           style={inputText}
                           value={startDate} // Show formatted date if selected
-                          placeholder={
-                            editRecord 
-                              ? (editingMedication?.startdate ? editingMedication.startdate : 'Start Date') 
-                              : 'Start Date'
-                          }
+                          placeholder={'Start Date'}
+                          onChangeText={(text) => {setStartDate(text)}}
                           placeholderTextColor={editRecord ? 'black' : '#A9A9A9'}
                           editable={false} // Prevent manual input
                           pointerEvents="none" // Prevent keyboard from appearing
                         />
                       </TouchableOpacity>                                                          
                       <DateTimePicker
-                        value={new Date()} 
+                        value={newStartDate ? newStartDate : new Date()} 
                         mode="date"
                         display="default"
                         onChange={onStartDateChange}
@@ -416,25 +467,22 @@ export default function MedicationScreen() {
                         <TextInput
                           style={inputText}
                           value={endDate} // Show formatted date if selected
-                          placeholder={
-                            editRecord 
-                              ? (editingMedication?.enddate ? editingMedication.enddate : 'End Date') 
-                              : 'End Date'
-                          }
+                          placeholder={'End Date'}
+                          onChangeText={(text) => {setEndDate(text)}}
                           placeholderTextColor={editRecord ? 'black' : '#A9A9A9'}
                           editable={false} // Prevent manual input
                           pointerEvents="none" // Prevent keyboard from appearing
                         />
                       </TouchableOpacity>                                    
                       <DateTimePicker
-                        value={new Date()} 
+                        value={newEndDate ? newEndDate : new Date()} 
                         display="default"
                         onChange={onEndDateChange}
                       />   
                     </View>
                     <View style={{flexDirection:'row', justifyContent:'space-evenly'}}>
                         <Button title="Save" onPress={handleSave} />
-                        <Button title="Cancel" onPress={() => setModalVisible(false)} />
+                        <Button title="Cancel" onPress={() => handleCancel()} />
                     </View>
                   </BlurView>
                 </View>
