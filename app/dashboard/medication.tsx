@@ -144,7 +144,7 @@ export default function MedicationScreen() {
   };
 
   // Handle Refill
-  const  handleRefill = async (medication) => {
+  const  handleRefill = async (medication:medication) => {
     Alert.alert(
       "Refill Reuqest",
       `"Medication: " ${medication.drugname }`,
@@ -155,10 +155,12 @@ export default function MedicationScreen() {
         },
         {
           text: "OK",
-          onPress: () => {
+          onPress: async() => {
             if (medication) {
-              const verification = verifyData(medication.medicationId,medication.drugname);
-              console.log("verification", verification);
+              const verification = await verifyData(medication.medDocumentId,medication.drugname);
+              if(verification){
+                Alert.alert('Request Sent!')
+              }
               
             } else {
               console.error("Invalid medication object");

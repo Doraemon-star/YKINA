@@ -85,6 +85,10 @@ function signData(data) {
 }
 
 export async function verifyData(originalData,requestdata) {
+    console.log("originalData",originalData);
+    console.log("requestdata",requestdata);
+
+
     const apiInstance = await api();  
     const signature_data = signData(originalData);
     const encrypted_request_data = encrypt_enclave(requestdata);
