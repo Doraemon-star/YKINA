@@ -7,12 +7,12 @@ import { BlurView } from 'expo-blur';
 import {YKINAStyle} from '@/constants/Stylesheet'; 
 import AsyncStorageService from '@/util/storage'; 
 import api from '@/util/api'
-import {encrypt_enclave,decryptMessage,verifyData} from '@/util/api';
+import {decryptMessage} from '@/util/api';
 
 export default function DiagnosisScreen() {
   const [userId, setUserId] = useState('');
   const [diseaseName, setDiseaseName] = useState('');
-  const [diseaseNewName, setDiseaseNewName] = useState('');
+  const [decryptedDiseaseName, setDecryptedDiseaseName] = useState('');
   const [diseaseIntroduction, setDiseaseIntroduction] = useState('');
   const [kidName, setKidName] = useState('');
   const [currentStatus, setCurrentStatus] = useState('');
@@ -20,55 +20,35 @@ export default function DiagnosisScreen() {
   const [statusEditing, setStatusEditing] = useState(false);  
   const [editedStatus, setEditedStatus] = useState(currentStatus);
   
-  useEffect(() => {
-    // Define the function to call encryptMessage and handle response
-    const runEncryption = async () => {
-        try {
-          const data = "hello world";
-          const request_data = "medication";
-          const response = await verifyData(data,request_data);
-          console.log("response:****\n", response);
  
-        } catch (error) {
-            console.error("Encryption error:", error);
-        }
-    };
-
-    // Call the function when the page loads
-    runEncryption();
-}, []); //
-
   useEffect(() => {
     const fetchData = async () => {
-
       try {
-
-        const [fetchedUserId, fetchedDiseaseName, fetchedIntroduction, fetchedKidName, fetchedCurrentStatus] = await Promise.all([
+        const [fetchedUserId, fetchedDiseaseName, fetchedKidName,fetchedCurrentStatus] = await Promise.all([
           AsyncStorageService.getItem('userId'),
           AsyncStorageService.getItem('diseaseName'),
-          AsyncStorageService.getItem('introduction'),
           AsyncStorageService.getItem('kidName'),
           AsyncStorageService.getItem('currentStatus')
         ]);
+        const apiInstance = await api();
+        const decrypted_disease_name = await decryptMessage(fetchedDiseaseName);
+        const disease_Introduction = await apiInstance.getDiseaseIntroduction(decrypted_disease_name);
 
         // Set the fetched data into the state
         setUserId(fetchedUserId || '');
         setDiseaseName(fetchedDiseaseName || '');
-        setDiseaseIntroduction(fetchedIntroduction || '');
+        setDecryptedDiseaseName(decrypted_disease_name);
+        setDiseaseIntroduction(disease_Introduction || '');
         setKidName(fetchedKidName || '');
         setCurrentStatus(fetchedCurrentStatus || '');
       } catch (error) {
         Alert.alert('Error', 'Failed to fetch data from storage');
       }
     };
-
     fetchData();
   }, []);
 
-  const createNewDiseaseName = async() => {
-
-  }
-
+ 
   const saveStatus = async () => {
     try {
       setCurrentStatus(editedStatus);
@@ -116,7 +96,7 @@ export default function DiagnosisScreen() {
                 </TouchableOpacity>                  
               </View>
             ): (
-              <Text style={YKINAStyle.generalTextLarge}>{diseaseName}</Text>
+              <Text style={YKINAStyle.generalTextLarge}>{decryptedDiseaseName}</Text>
           )}
           <Text>{"\n"}</Text>
 

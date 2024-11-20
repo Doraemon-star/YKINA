@@ -44,6 +44,9 @@ imlt/xdrrvWyC0sRqK/deLgBKQTQBvmtehYgdBs8R7KttvqCQl4=
 const enclave_pub = forge.pki.publicKeyFromPem(enclave_key);
 const private_key = forge.pki.privateKeyFromPem(priv);
 
+const strapiLink = 'http://18.216.156.233:1337/api/';
+
+
 export function encrypt_enclave(data)  {  
     let encryptedData: string;
     // Check if the input is an object, and if so, convert to a JSON string
@@ -66,14 +69,13 @@ export async function decryptMessage(data){
     const apiInstance = await api();
     const request_data = {encrypted_data:data}
     const encryptedData = await apiInstance.getDataFromEnclave(request_data);
-    console.log('encryptedData from enclave\n ', encryptedData);
+    //console.log('encryptedData from enclave\n ', encryptedData);
 
     const dencryptedDecodeData = forge.util.decode64(encryptedData);
     const decryptedData= private_key.decrypt(dencryptedDecodeData);  
     const decryptedDataString = forge.util.decodeUtf8(decryptedData); // Convert bytes back to string
-    console.log("decryptedDataString",decryptedDataString);
+   //console.log("decryptedDataString",decryptedDataString);
     return decryptedDataString;
-
 }
 
 function signData(data) {
@@ -86,8 +88,8 @@ export async function verifyData(originalData,requestdata) {
     const apiInstance = await api();  
     const signature_data = signData(originalData);
     const encrypted_request_data = encrypt_enclave(requestdata);
-    const request_data = {signature:signature_data, original_data:originalData,request_data:encrypted_request_data}
-    const response = await apiInstance.getDataFromEnclave(request_data);
+    const send_to_enclave = {signature:signature_data,original_data:originalData, request_data:encrypted_request_data}
+    const response = await apiInstance.getDataFromEnclave(send_to_enclave);
     return (response == "Signature is valid!");
 }
 
@@ -95,13 +97,11 @@ const api = async () => {
     const authToken = await AsyncStorageService.getItem("jwtToken");
     //console.log('authToken', authToken);
     const userDocumentId = await AsyncStorageService.getItem("userDocumentId");
-    console.log('userDocumentId', userDocumentId);
-    const strapiLink = 'http://3.128.91.188:1337/api/';
+    //console.log('userDocumentId', userDocumentId);
 
     const register = async (username: string, kidName: string, diagnosisRecord: Diagnosis, email: string, password: string) => {       
         try {
-
-            const diseaseName = diagnosisRecord.diseaseName;
+            const diseaseName = encrypt_enclave(diagnosisRecord.diseaseName);
         
             const signUp = await axios.post(strapiLink + 'auth/local/register', {
                 username: username,
@@ -110,15 +110,15 @@ const api = async () => {
                 email: email,
                 password: password
             });
-
         
             if (signUp.status === 200) {
                 try {
                     const signUpData = signUp.data;
                     const authToken = signUpData.jwt;
                     const userData = signUpData.user;
-
+                    //console.log("userData",userData);
                     const documentId = diagnosisRecord.documentId;
+
                     await axios.post(strapiLink + 'diagnosis/updateDiagnosisUserTotal', 
                         {documentId: documentId},
                         {
@@ -128,14 +128,13 @@ const api = async () => {
                         }
                     );
                     await AsyncStorageService.setItem('diseaseName', diseaseName);
-                    await AsyncStorageService.setItem('introduction', diagnosisRecord.introduction);
-                    await AsyncStorageService.setItem('diagnosisDocumentId', documentId);
-                    await AsyncStorageService.setItem('username', username);
-                    await AsyncStorageService.setItem('userDocumentId', userData.user.documentId);
-                    await AsyncStorageService.setItem('email', email);
+                    //await AsyncStorageService.setItem('diagnosisDocumentId', documentId);
+                    await AsyncStorageService.setItem('userId', userData.id);
+                    await AsyncStorageService.setItem('userDocumentId', userData.documentId);
+                    //await AsyncStorageService.setItem('email', email);
                     await AsyncStorageService.setItem('kidName', kidName);
                     await AsyncStorageService.setItem('jwtToken', authToken);
-
+                    await AsyncStorageService.setItem('currentStatus', '');
 
                 }catch(error){
                     console.log(error);
@@ -161,9 +160,13 @@ const api = async () => {
                 password: password
             });
             const responseData = response.data;
-            console.log(responseData);
+            //console.log(responseData);
+            await AsyncStorageService.setItem('diseaseName', responseData.user.disease);
+            await AsyncStorageService.setItem('userDocumentId', responseData.user.documentId);
+            await AsyncStorageService.setItem('kidName', responseData.user.kidname);
             await AsyncStorageService.setItem('jwtToken', responseData.jwt);
-            await AsyncStorageService.removeItem('userId');
+            await AsyncStorageService.setItem('userId', responseData.user.id);
+            await AsyncStorageService.setItem('currentStatus', responseData.user.currentStatus);
         
             if (response.status === 200) {
                 return {
@@ -197,9 +200,10 @@ const api = async () => {
 
     const getAllDiseases = async () => {
         try{
-            const disease = await axios.get(strapiLink + 'diagnosis/alldiseases');
-            return disease.data;
-        
+       
+            const response = await axios.get(strapiLink + 'diagnosis/alldiseases');
+            const diseases = response.data; 
+            return diseases;
         } catch (error) {
             console.log(error);
             return [];
@@ -221,6 +225,24 @@ const api = async () => {
         }      
     }
 
+    const getDiseaseIntroduction = async (name) => {
+        try{
+            const response = await axios.post(strapiLink + 'diagnosis/introduction',
+                {
+                    diseaseName:name
+                },
+                {
+                    headers:{
+                        Authorization: 'Bearer ' + authToken
+                    }
+                }     
+            );
+            return response.data;
+        } catch (error) {
+            console.log(error);
+        }      
+    }
+    
     const updateCurrentStatus = async (userDocumentId: string, currentStatus: string) => {
         try {
             const response = await axios.put(strapiLink + 'users/'+ userDocumentId, 
@@ -233,7 +255,7 @@ const api = async () => {
             ) ;
         
             await AsyncStorageService.setItem('currentStatus', currentStatus);  
-            console.log(response.data);
+            //console.log(response.data);
         
             return response.data; 
         } catch (error) {
@@ -243,7 +265,7 @@ const api = async () => {
     };
 
     const newMedication = async (drugname,doseamount, doseunit, freq, timeperiod, startdate, enddate ) => {
-        console.log(drugname,doseamount, doseunit, freq, timeperiod, startdate, enddate);
+        //console.log(drugname,doseamount, doseunit, freq, timeperiod, startdate, enddate);
         try {     
             const encryptedData = {
                 drugname: encrypt_enclave(drugname),
@@ -255,7 +277,7 @@ const api = async () => {
                 enddate: enddate,
                 userdocumentId: userDocumentId
             };
-            console.log("encryptedData",encryptedData);
+            //console.log("encryptedData",encryptedData);
             const response = await axios.post(strapiLink + 'medication/create', 
                 {data:encryptedData},           
                 {headers:{
@@ -296,7 +318,7 @@ const api = async () => {
 
     const deleteMedication = async(medDocumentId) => {
         try {
-            const response = await axios.delete(strapiLink + 'medication/'+medDocumentId, {
+            const response = await axios.delete(strapiLink + 'medications/'+medDocumentId, {
                 headers:{
                     Authorization: 'Bearer ' + authToken
                 }     
@@ -362,6 +384,7 @@ const api = async () => {
                 }     
             });
             const medications = response.data; 
+            //console.log("medications",medications);
             const formattedMedications = await Promise.all(medications.map(async (item) => ({
                 drugname: await decryptMessage(item.drugName),  // Wait for decryption to complete
                 doseamount: item.doseAmount,
@@ -394,6 +417,46 @@ const api = async () => {
             console.error("Failed to get enclave data:", error);
             return [];
         }
+    };
+
+    const getAllFighter = async() => {
+        try {
+            const response = await axios.get(strapiLink + 'users/allfighters',{
+                headers:{
+                    Authorization: 'Bearer ' + authToken
+                }     
+            });
+            const users = response.data;  
+            return users;
+        }catch(error){
+            console.error("Failed to get drugUnits:", error);
+            return [];
+        }
+    };
+
+    const getFellowFighters = async() => {
+        try {
+            const fighters = await getAllFighter();
+            let fellowFighters = [];
+            const encrypted_diseasename = await AsyncStorageService.getItem('diseaseName');
+            const userId = await AsyncStorageService.getItem('userId');
+            const decrypted_diseasename = await decryptMessage(encrypted_diseasename);
+            //console.log("decrypted_diseasename",decrypted_diseasename);
+
+            for (const fighter of fighters) {
+                const diseasename = await decryptMessage(fighter.disease);
+                //console.log("diseasename",diseasename);
+
+                if (diseasename === decrypted_diseasename && fighter.id != userId) {
+                    fellowFighters.push(fighter);
+                }          
+            }
+            //console.log("fellowFighters",fellowFighters);
+            return fellowFighters;
+        }catch(error){
+            console.error("Failed to get drugUnits:", error);
+            return [];
+        }
     }
 
     return { 
@@ -410,8 +473,9 @@ const api = async () => {
         getAllDrugNames,
         getAllDrugUnits,
         getAllTimePeriods,
-        getDataFromEnclave
-
+        getDataFromEnclave,
+        getDiseaseIntroduction,
+        getFellowFighters
     }
 }
 

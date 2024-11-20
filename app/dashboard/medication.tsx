@@ -14,7 +14,7 @@ import { BlurView } from 'expo-blur';
 import {YKINAStyle} from '@/constants/Stylesheet'; 
 import { Ionicons } from '@expo/vector-icons'; 
 import Colors from '@/constants/Colors'; 
-import api,{verifySignature} from '@/util/api';
+import api,{verifyData} from '@/util/api';
 import { Dropdown } from 'react-native-element-dropdown';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import AsyncStorageService from '@//util/storage'; 
@@ -76,7 +76,6 @@ export default function MedicationScreen() {
       status: item.enddate ? 'Inactive' : 'Active',
       medDocumentId: item.medDocumentId,
     }));
-    console.log("formattedMedications:\n",formattedMedications);
     return formattedMedications;
 
   }  
@@ -146,7 +145,6 @@ export default function MedicationScreen() {
 
   // Handle Refill
   const  handleRefill = async (medication) => {
-    const userDocumentId = await AsyncStorageService.getItem("userDocumentId");
     Alert.alert(
       "Refill Reuqest",
       `"Medication: " ${medication.drugname }`,
@@ -159,8 +157,8 @@ export default function MedicationScreen() {
           text: "OK",
           onPress: () => {
             if (medication) {
-              const verify_data = userDocumentId;
-              const verification = verifySignature(userDocumentId);
+              const verification = verifyData(medication.medicationId,medication.drugname);
+              console.log("verification", verification);
               
             } else {
               console.error("Invalid medication object");
@@ -174,7 +172,7 @@ export default function MedicationScreen() {
   }
 
   // Handle Delete
-  const handleDelete = (id) => {
+  const handleDelete = async(medicationId) => {
     Alert.alert(
       "Delete Medication",
       "Are you sure you want to delete this medication? The data cannot be recovered after deletion.",
@@ -185,14 +183,26 @@ export default function MedicationScreen() {
         },
         {
           text: "OK",
-          onPress: () => {
-            setMedications((prevMedications) =>
-              prevMedications.filter((med) => med.id !== id)
-            );
-          },
+          onPress: async() => {
+            try{
+              setMedications((prevMedications) =>
+                prevMedications.filter((med) => med.medDocumentId !== medicationId)            
+              );
+              const apiInstance = await api();
+              await apiInstance.deleteMedication(medicationId);
+              Alert.alert("Success", "Medication has been deleted.");
+            }catch (error) {
+              console.error("Error deleting medication:", error);
+              Alert.alert(
+                "Error",
+                "Failed to delete medication. Please try again later."
+              );
+            }
+          }         
         },
       ]
     );
+    
   };
 
   const handleCancel = () => {
@@ -273,6 +283,9 @@ export default function MedicationScreen() {
           <TouchableOpacity onPress={() => handleEdit(item)} >
             <Text style={YKINAStyle.medicationDetailsUnderline}>edit</Text>
           </TouchableOpacity>     
+          <TouchableOpacity onPress={() => handleRefill(item)} >
+            <Text style={YKINAStyle.medicationDetailsUnderline}>refill</Text>
+          </TouchableOpacity> 
           <TouchableOpacity onPress={() =>handleDelete(item.medDocumentId)} >
             <Text style={YKINAStyle.medicationDetailsUnderline}>delete</Text>
           </TouchableOpacity>     

@@ -30,7 +30,7 @@ export default function Home() {
 
     // Automatically navigate to login after 3 seconds
     const timer = setTimeout(() => {
-      router.push('/dashboard/medical');
+      router.push('/login');
     }, 5000);
 
     // Cleanup the timer

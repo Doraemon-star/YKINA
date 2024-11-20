@@ -28,6 +28,11 @@ export const YKINAStyle = StyleSheet.create ({
         justifyContent: 'flex-start',
         alignItems: 'flex-start',
     },
+    loaderContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
     frostedGlass: {
         width: '85%',
         padding: 10,
