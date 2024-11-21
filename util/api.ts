@@ -44,7 +44,7 @@ imlt/xdrrvWyC0sRqK/deLgBKQTQBvmtehYgdBs8R7KttvqCQl4=
 const enclave_pub = forge.pki.publicKeyFromPem(enclave_key);
 const private_key = forge.pki.privateKeyFromPem(priv);
 
-const strapiLink = 'http://18.216.156.233:1337/api/';
+const strapiLink = 'http://18.220.5.16:1337/api/';
 
 
 export function encrypt_enclave(data)  {  
@@ -85,8 +85,8 @@ function signData(data) {
 }
 
 export async function verifyData(originalData,requestdata) {
-    console.log("originalData",originalData);
-    console.log("requestdata",requestdata);
+    //console.log("originalData",originalData);
+    //console.log("requestdata",requestdata);
 
 
     const apiInstance = await api();  
@@ -189,11 +189,7 @@ const api = async () => {
 
     const getInspiringSentences = async () => {
         try{
-            const inspiringSentences = await axios.get(strapiLink + 'diagnosis/inspiringSentences',{
-                headers:{
-                    Authorization: 'Bearer ' + authToken
-                }         
-            });
+            const inspiringSentences = await axios.get(strapiLink + 'diagnosis/inspiringSentences');
             return inspiringSentences.data;
         
         } catch (error) {

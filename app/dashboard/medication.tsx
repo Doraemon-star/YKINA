@@ -17,7 +17,7 @@ import Colors from '@/constants/Colors';
 import api,{verifyData} from '@/util/api';
 import { Dropdown } from 'react-native-element-dropdown';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import AsyncStorageService from '@//util/storage'; 
+import moment from 'moment';
 
 
 type medication= {
@@ -42,9 +42,9 @@ export default function MedicationScreen() {
   const [newRecord, setNewRecord]= useState(false);
   
   // Dropdown lists
-  const [drugNames, setDrugNames] = useState<{label:string;value:number}[]>([]);
-  const [drugUnits, setDrugUnits] = useState<{label:string;value:number}[]>([]);
-  const [timePeriods, setTimePeriods] = useState<{label:string;value:number}[]>([]);
+  const [drugNames, setDrugNames] = useState<{label:string;value:string}[]>([]);
+  const [drugUnits, setDrugUnits] = useState<{label:string;value:string}[]>([]);
+  const [timePeriods, setTimePeriods] = useState<{label:string;value:string}[]>([]);
 
   // Dropdown lists focus
   const [isFocusDrugName, setIsFocusDrugName] = useState(false);
@@ -65,6 +65,8 @@ export default function MedicationScreen() {
 
   const fetchMedications = async(apiInstance) => {
     const allMedications = await apiInstance.getAllMedications();
+    const today = moment();
+    console.log(today);
     const formattedMedications = allMedications.map(item => ({
       drugname: item.drugname,
       doseamount: item.doseamount,
@@ -73,7 +75,7 @@ export default function MedicationScreen() {
       timeperiod: item.timeperiod,
       startdate: item.startdate,
       enddate: item.enddate,
-      status: item.enddate ? 'Inactive' : 'Active',
+      status: item.enddate && (moment(item.enddate, 'MM/DD/YYYY')).isBefore(today) ? 'Inactive' : 'Active',
       medDocumentId: item.medDocumentId,
     }));
     return formattedMedications;
@@ -100,7 +102,7 @@ export default function MedicationScreen() {
     };
     fetchAllData();
   }, []);
-  
+
   // Handle New
   const handleNew = () => {
         setModalVisible(true);
@@ -367,7 +369,7 @@ export default function MedicationScreen() {
                       onFocus={() => setIsFocusDrugName(true)}
                       onBlur={() => setIsFocusDrugName(false)}
                       onChange={item => {
-                        setSelectedDrugName(item.label);
+                        setSelectedDrugName(item.value);
                         setIsFocusDrugName(false);
                       }}               
                     />
@@ -408,7 +410,7 @@ export default function MedicationScreen() {
                         onFocus={() => setIsFocusDoseUnit(true)}
                         onBlur={() => setIsFocusDoseUnit(false)}
                         onChange={item => {
-                          setSelectedDoseUnit(item.label);
+                          setSelectedDoseUnit(item.value);
                           setIsFocusDoseUnit(false);
                         }}               
                       />
@@ -449,7 +451,7 @@ export default function MedicationScreen() {
                         onFocus={() => setIsFocusTimePeriod(true)}
                         onBlur={() => setIsFocusTimePeriod(false)}
                         onChange={item => {
-                          setSelectedTimePeriod(item.label);
+                          setSelectedTimePeriod(item.value);
                           setIsFocusTimePeriod(false);
                         }}               
                       />

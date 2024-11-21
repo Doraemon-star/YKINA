@@ -122,7 +122,7 @@ export const YKINAStyle = StyleSheet.create ({
         borderColor: Colors.white.bright, 
     },
     dropdownContainer: {       
-        backgroundColor: 'rgba(255, 255, 255, 0.9)', 
+        backgroundColor: 'rgba(255, 255, 255, 1)', 
         borderColor: Colors.green.text, 
     },
     dropdownItem: {

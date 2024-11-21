@@ -40,12 +40,10 @@ export default function Home() {
   return (
     <ImageBackground
       source={require('../assets/images/image5.png')} // Replace with your own image
-      style={YKINAStyle.imageIackground}
+      style={[YKINAStyle.imageIackground, {justifyContent:'flex-start'}]}
     >
-      <View style={YKINAStyle.overlayCenter}>
-        <View style={YKINAStyle.quoteContainer}>
-          <Text style={YKINAStyle.quoteText}>{quote}</Text>
-        </View>
+      <View style={YKINAStyle.quoteContainer}>
+        <Text style={YKINAStyle.quoteText}>{quote}</Text>
       </View>
     </ImageBackground>
   );
