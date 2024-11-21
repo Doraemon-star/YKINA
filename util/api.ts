@@ -44,7 +44,7 @@ imlt/xdrrvWyC0sRqK/deLgBKQTQBvmtehYgdBs8R7KttvqCQl4=
 const enclave_pub = forge.pki.publicKeyFromPem(enclave_key);
 const private_key = forge.pki.privateKeyFromPem(priv);
 
-const strapiLink = 'http://18.220.5.16:1337/api/';
+const strapiLink = 'http://3.145.203.228:1337/api/';
 
 
 export function encrypt_enclave(data)  {  
@@ -88,13 +88,19 @@ export async function verifyData(originalData,requestdata) {
     //console.log("originalData",originalData);
     //console.log("requestdata",requestdata);
 
-
     const apiInstance = await api();  
     const signature_data = signData(originalData);
     const encrypted_request_data = encrypt_enclave(requestdata);
     const send_to_enclave = {signature:signature_data,original_data:originalData, request_data:encrypted_request_data}
     const response = await apiInstance.getDataFromEnclave(send_to_enclave);
     return (response == "Signature is valid!");
+}
+
+async function compare_data(data_1,data_2){
+    const apiInstance = await api();
+    const request_data = {compare:{data1:data_1, data2:data_2}};
+    const response = await apiInstance.getDataFromEnclave(request_data);
+    return (response == "Match");
 }
 
 const api = async () => {
@@ -438,18 +444,17 @@ const api = async () => {
         try {
             const fighters = await getAllFighter();
             let fellowFighters = [];
-            const encrypted_diseasename = await AsyncStorageService.getItem('diseaseName');
+            const diseasename = await AsyncStorageService.getItem('diseaseName');
             const userId = await AsyncStorageService.getItem('userId');
-            const decrypted_diseasename = await decryptMessage(encrypted_diseasename);
-            //console.log("decrypted_diseasename",decrypted_diseasename);
-
+            
             for (const fighter of fighters) {
-                const diseasename = await decryptMessage(fighter.disease);
-                //console.log("diseasename",diseasename);
-
-                if (diseasename === decrypted_diseasename && fighter.id != userId) {
-                    fellowFighters.push(fighter);
-                }          
+                if (fighter.id != userId) {
+                    const fighter_diseasename = fighter.disease;
+                    const response = await compare_data(diseasename,fighter_diseasename);
+                    if (response){
+                        fellowFighters.push(fighter);
+                    }
+                }                      
             }
             //console.log("fellowFighters",fellowFighters);
             return fellowFighters;
