@@ -1,0 +1,177 @@
+YKINA 
+Bridging Gaps, Building Hope 
+
+
+by 
+Jinjin Liu 
+
+A Project 
+Submitted to the
+Department of Computer ScienceIn Partial Fulfillment
+of the Requirement for the Degree of
+
+Cybersecurity Technology Hofstra University 
+December, 2024
+_____________________________________________
+Dr. Xiang Fu, Advisor 
+_____________________________________________
+Dr. Krishnan Pillaipakkamnatt, Graduate Coordinator 
+
+Abstract 
+YKINA (Your Kid Is Not Alone) is a platform for information exchange of rare pediatric diseases, which aims to connect the parents of sick children, share treatment progress and seek support from others facing similar challenges. 
+1. Introduction
+
+1.1 Background Inspiration
+
+The origin of this idea appeared in the process of my participation in saving critically ill children. In an era when data is widely spread, an information gap still exists. In many cases, parents of rare disease children face difficulty in accessing crucial information that could significantly impact their child's treatment. Parents and even healthcare professionals may believe they have identified the most suitable treatment, but the truth is they are not fully informed. This kind of information gap is especially serious in areas with underdeveloped medical infrastructure. People may not know about new drugs or treatment programs, which leads to missing the opportunities of effective treatment. Even when parents try to bridge this information gap through personal efforts and find that hospitals in Europe or the United States provide better treatment options, economic problems or other obstacles often prevent them from seeking such opportunities.  YKINA aims to break down this information gap and provide an alternative for financially strapped parents. 
+1.2 Importance of security and data privacy in healthcare
+
+Security and data privacy are paramount in healthcare because of the sensitive nature of medical records. Breaches can compromise patient trust, lead to identity theft, and violate regulatory standards like HIPAA in the U.S. For children, the stakes are higher due to their vulnerability, necessitating compliance with additional laws like COPPA. Ensuring secure handling of data protects patient confidentiality, prevents misuse, and fosters a trustworthy ecosystem crucial for effective healthcare delivery.
+1.3 Existing solutions and limitations
+
+Existing security measures in healthcare applications include a mix of server-side and user-side protections (RareGuru). 
+Server-side features typically include encrypting data in transit using HTTPS and TLS 1.2 or higher, using firewalls to control access, applying whole disk encryption for databases, and storing passwords using advanced cryptographic hashing methods. Hosting accounts are also protected with strong, complex passwords and two-factor authentication where available.
+User-side protections involve requiring account creation with a secure password, enabling biometric or PIN login for additional security, and ensuring no confidential information is stored permanently on user devices. Data viewed within apps is only stored in volatile memory and is secured during transit over HTTPS.
+Despite these robust measures, vulnerabilities remain. Server-side protections cannot fully safeguard against advanced hacking attempts or breaches that could expose encrypted data. Additionally, user-side controls depend heavily on user compliance, leaving gaps in security when users bypass best practices. Moreover, while encrypted databases protect stored information, they are vulnerable during processing, where decrypted data becomes accessible to attackers targeting server memory or application logic.
+
+1.4 How YKINA addresses these gaps with AWS Nitro Enclave
+
+YKINA builds upon these standard methods by incorporating an additional layer of security with AWS Nitro Enclave. This technology isolates sensitive data in a secure environment, ensuring that even in the event of a server breach, attackers cannot access unencrypted information. Unlike traditional systems where decrypted data is accessible during processing, Nitro Enclave keeps the data encrypted throughout its lifecycle, even from the server administrators. This approach bridges critical gaps in existing solutions, offering unparalleled security for managing highly sensitive healthcare data.
+2. Core Technology and Security Measures
+
+2.1 AWS Nitro Enclave: Overview and integration
+
+AWS Nitro Enclaves is an Amazon EC2 (Amazon Elastic Compute Cloud) feature that allows you to create isolated execution environments, called enclaves, from Amazon EC2 instances. Enclaves are separate, hardened, and highly-constrained virtual machines. They provide only secure local socket (vsock socket) connectivity with their parent instance. They have no persistent storage, interactive access, or external networking. Users cannot SSH into an enclave, and the data and applications inside the enclave cannot be accessed by the processes, applications, or users (root or admin) of the parent instance (Amazon Web Services).
+
+Nitro Enclaves use the same Nitro Hypervisor technology that provides CPU and memory isolation for Amazon EC2 instances in order to isolate the vCPUs and memory for an enclave from a parent instance. The Nitro Hypervisor ensures that the parent instance has no access to the isolated vCPUs and memory of the enclave (Amazon Web Services).
+
+To implement Nitro Enclaves on your EC2 instance, ensure that the parent instance meets the following requirements: it must be a virtualized Nitro-based instance, either Intel or AMD-based with at least 4 vCPUs (excluding certain instance types), or an AWS Graviton-based instance with at least 2 vCPUs. The operating system should be Linux or Windows 2016 or later. For the enclave itself, only a Linux operating system is supported.
+2.2 Implementing RSA Encryption in Nitro Enclaves
+
+RSA (Rivest-Shamir-Adleman) is a widely used asymmetric cryptographic algorithm that relies on the mathematical properties of prime factorization. It uses a pair of keys: a public key for encryption and a private key for decryption. RSA is fundamental for secure data transmission, allowing users to exchange information confidentially over insecure channels. It a reliable choice for applications like secure communications, digital signatures, and key exchange protocols.
+To secure sensitive data within YKINA, RSA encryption is employed as a robust asymmetric encryption method. RSA's public-private key mechanism ensures that sensitive data remains confidential and tamper-proof.
+RSA Encryption Workflow:
+Key Generation: A pair of keys (public and private) is generated. The public key encrypts data, while the private key decrypts it.
+Data Encryption: Sensitive information is encrypted using the public key, ensuring that only the holder of the private key can access the original data.
+Data Decryption: Encrypted data is decrypted within the Nitro Enclave using the private key, maintaining a secure and isolated execution environment.
+Integration with Nitro Enclaves:
+Key Management: The encryption process employs two pairs of RSA keys:
+Long-Term Keys: Used for consistent encryption and decryption; these can be periodically updated during maintenance or system upgrades. The long-term private key is securely managed within the Nitro Enclave. It can be embedded directly into the enclave’s execution code or stored as a separate file within the enclave. Crucially, this key never leaves the enclave, ensuring robust protection against external threats.
+Random Keys: Generated dynamically at the client side (e.g., parent instance or app) for one-time encryption tasks, enhancing data security.
+Secure Data Processing: 
+Data Encryption: Sensitive data is encrypted using the long-term public key before being stored in the database.
+Data Decryption:
+When access to sensitive data is needed, the encrypted data, along with the client-generated random public key, is transmitted to the enclave over a secure vsock socket channel.
+Inside the enclave, the long-term private key decrypts the data for secure processing.
+Re-Encryption: The decrypted data is re-encrypted using the random public key and transmitted back to the client over the same secure channel.
+Final Decryption: The client decrypts the received data using the random private key, ensuring the data is accessible only to the intended recipient.
+
+2.3 How these methods ensure privacy and protect user information
+
+Isolated Key Management: Storing the long-term private key within the enclave prevents unauthorized access. Since the key never leaves the secure environment, the risk of exposure is significantly reduced, even if the parent instance is compromised.
+Layered Encryption: The dual-layer encryption process ensures that data is protected at every stage—both in transit and at rest. Long-term keys secure stored data, while random keys dynamically safeguard data during transmission, adding an additional security layer.
+End-to-End Protection: Sensitive information is only decrypted within the secure enclave environment, ensuring no plaintext data exists outside the enclave. Re-encryption before transmission ensures data integrity and confidentiality.
+Defense Against External Threats: By utilizing secure communication channels (e.g., vsock sockets), the methods prevent interception and tampering during data exchange. Even if attackers gain access to the database or transmission channels, they encounter unreadable encrypted data.
+This layered approach combines the strength of Nitro Enclaves with RSA encryption to safeguard sensitive data at every stage, protecting it from potential breaches even in vulnerable environments, addressing the stringent security needs of YKINA while leveraging the enclave's secure processing capabilities.
+3. YKINA Description
+1.1 What is YKINA
+YKINA (Your Kid Is Not Alone) is a mobile application designed to support parents of children with rare diseases. It provides a secure platform for storing, managing, and sharing sensitive medical information. YKINA focuses on privacy and data security while offering tailored resources and communication tools to aid families in navigating complex medical challenges.
+1.2 Key Tools and technologies used 
+
+AWS EC2 Instance: A virtual server to run applications, manage databases or perform data processing. In YKINA, it also acts as the parent instance to allocate CPU cores and memory to the enclave. It is the only instance that can communicate with its enclave. 
+AWS RDS: A managed relational database service for MySQL, PostgreSQL, MariaDB, Oracle BYOL, or SQL Server (Amazon Web Services).
+AWS Nitro Enclaves: Provides a secure, isolated environment for sensitive data processing.
+AWS Nitro Enclaves CLI: A command line tool that is used to create, manage, and terminate enclaves (Amazon Web Services).
+Docker: Utilized for building and deploying the Nitro Enclave environment, ensuring isolated and secure execution of sensitive tasks. Docker streamlines the enclave setup and simplifies dependency management.
+Vsock Socket: A local communication channel between a parent instance and its enclaves. It is the only channel of communication that an enclave can use to interact with external services.
+Python: Used to write the vsock socket communication code, enabling secure data exchange between the parent instance and the enclave. Python’s versatility makes it ideal for implementing secure communication protocols.
+RSA Encryption: Ensures end-to-end data protection through robust cryptographic methods.
+Virtual Studio Code (VS Code): Employed for developing the React Native application, providing an efficient, developer-friendly environment for coding, debugging, and managing project files.
+React Native: A JavaScript-based open-source UI software framework which enables cross-platform mobile app development for iOS and Android devices.
+Strapi: An open-source, Node.js based, Headless content management system (CMS) that used to develop websites and mobile apps. To streamline content delivery (text, images, video, etc) across any devices, strapi decouples the backend from the frontend, allowing content to be delivered through APIs.
+
+1.3 System architecture and design
+
+The architecture of YKINA is built to ensure secure, scalable, and efficient data handling for parents accessing sensitive medical information. At its core, a React Native-based app provides the user interface, enabling seamless interaction across platforms. Strapi, deployed on an AWS EC2 instance, acts as the content management system and API provider, linking the app to an AWS RDS database where all application data is stored. A key security component is the AWS Nitro Enclave, embedded in the EC2 instance, which ensures the secure processing of sensitive data, including encrypted communications through a vsocket connection with Strapi. All data exchanges are encrypted using RSA methods, with TLS 1.2 securing transmissions. This design harmoniously integrates user-facing features, robust backend services, and advanced security to meet the app’s stringent privacy requirements.
+
+1.4 Core features of the app
+
+The core features of the YKINA app are designed to support parents managing the health of children with rare diseases while ensuring high security through AWS Nitro Enclave integration.
+First, Medication Records allow users to log and track daily medications, including details such as drug name, dosage, frequency, and treatment duration. Second, the Medication Refill feature provides a secure process for requesting refills; user-specific secrets are signed with an RSA private key and verified within the Nitro Enclave before forwarding requests to medical professionals. Finally, the Match List facilitates secure connections among users by comparing disease names in the enclave, returning matches while preserving privacy. These features highlight a combination of functionality and security, central to YKINA’s mission.
+1.3 Examples of encryption in action
+
+Diagnosis: A place to show user’s basic information, include disease name, disease introduction, kid’s name and kid’s status. User can update kid’s current status (stage of the disease, kid’s metal status, etc) in this screen. 
+Medication Records: When a user adds a new medication, the drug name is encrypted using a long-term public key and securely stored in the database via the API. This prevents exposure during transmission or storage. When retrieving medication data, the encrypted drug names are sent to the Nitro Enclave through an API and vsock socket. Within the enclave, the long-term private key decrypts the data, re-encrypts it using a random public key, and returns it securely. The front end decrypts it using the random private key for display.
+Medication Refills: Upon clicking the "Refill" button, sensitive details (e.g., user ID, medication ID, doctor’s PIN, doctor’s digital signature, etc) are signed with a random RSA private key. This data, alongside the signature and encrypted request data, is transmitted to the enclave. The enclave verifies the signature and decrypts the request data, re-encrypting it with the doctor’s public key. The doctor receives this securely re-encrypted data and processes the refill request.
+User Matching: During registration, the disease name is encrypted using a long-term public key and saved to the database. For user matching, encrypted disease names from the database are sent to the enclave for comparison. The enclave decrypts and compares these names using the long-term private key. If they match, a "Match" is returned; otherwise, "Unmatch" is sent. Only matched users are displayed to the requester on the front end, ensuring privacy and security.
+
+4. Limitation
+4.1 Nitro Enclaves Limitations
+
+Limited OS Support: Nitro Enclaves only support Linux operating systems, which restricts flexibility for applications requiring other OS environments.
+Limited Parent Instance support: Nitro Enclaves are restricted to specific EC2 instance types, limiting the options for deployment. This reliance on a designated parent instance poses challenges.
+Rely on the Parent Instance: Enclaves can only communicate with their parent instance and cannot interact with network or other enclaves, even if they are running on the same parent. Consequently, if the parent instance is stopped or terminated, all associated enclaves are also terminated, leading to potential denial of service. This can impact the availability of applications relying on enclaves for secure data processing, making redundancy and instance management critical considerations. 
+Resource Constraints: The enclave's resources are isolated, potentially limiting processing power and memory available for intensive tasks.
+Complexity: Setting up and managing Nitro Enclaves can be complex, requiring specialized knowledge in secure environments.
+4.2 App Limitations
+
+Dependency on AWS Services: The app relies heavily on AWS infrastructure, which can lead to issues if services experience downtime or changes.
+4.3 User Education
+
+Users may need training on how to use the app effectively, especially with features related to security and data management.
+4.4 Scalability Challenges
+
+You can only create up to four individual enclaves per parent instance. As user demand increases, maintaining performance and security while scaling while handling multiple complex tasks can be challenging.
+
+5. Future Improvements
+5.1 Planned feature expansions
+
+Lab Result Records: Enable users to securely upload and store laboratory test results, making it easy to access and share with healthcare providers when needed. Integration with common healthcare APIs could allow for automatic result imports from labs.
+Surgery Records: A module to document past surgeries, including details like type, date, medical professionals involved, and recovery notes, providing a comprehensive medical history.
+Treatment Plan Module: Users can efficiently record daily treatment routines. A "Same as Yesterday" shortcut simplifies recurring entries, ensuring consistency and saving time.
+Timeline Module: Based on data from treatment plans, medications, lab results, and surgeries, this feature generates a visual treatment timeline. Parents can track changes in the child’s health and treatments over time, offering insights into therapy effectiveness and progress.
+Notification System: Personalized notifications for medication reminders, upcoming appointments, or updates to treatment plans, enhancing user adherence and engagement.
+Live Chat: A secure chat feature allowing parents to communicate with healthcare providers, caregivers, or support groups directly within the app. This ensures timely advice and support.
+Parent Diary: A dedicated space for parents to document their caregiving journey, challenges, milestones, and reflections. This feature could include mood tracking, photo attachments, and sharing options within trusted circles.
+Health Provider Access: Enable secure communication and data sharing between users and their healthcare providers. Users can grant controlled access to specific health records, such as medication history, lab results, and treatment plans. Providers will access this data through a dedicated, encrypted portal, ensuring privacy and compliance with healthcare regulations like HIPAA. Additionally, healthcare professionals can upload recommendations, lab results, or adjustments directly to the user’s treatment plan, streamlining collaboration and improving the quality of care.
+
+5.2 Innovations in security and technology
+
+Advanced File Protection Using Shamir's Secret Sharing (SSS): Implement SSS to split sensitive files, such as Python scripts used for enclave configuration, into secure fragments. These fragments are distributed among multiple storage locations, ensuring that the file can only be reconstructed with access to a majority of the fragments. This adds a robust layer of protection to critical application components.
+Enhanced Data Encryption: Upgrade the encryption algorithms to the latest standards based on the business budget, ensuring that all data transmissions and storage comply with the most rigorous industry guidelines.
+Zero-Trust Architecture: Incorporate a zero-trust model for accessing critical systems, with strict user authentication and role-based access controls.
+
+5.3 Collaboration opportunities with healthcare organizations
+
+Partnering with healthcare institutions offers mutual benefits:
+Data Integration: Collaborate with hospitals and laboratories for seamless integration of patient data, enabling features like automatic lab result uploads or treatment updates.
+Research Partnerships: Work with healthcare researchers to analyze anonymized data trends, improving disease management strategies and app functionality.
+Patient Support Services: Collaborate with clinics or telehealth providers to incorporate direct consultation features, ensuring that users can access professional advice within the app.
+Awareness Campaigns: Partner with healthcare nonprofits to raise awareness about rare diseases, leveraging the app’s user base and shared goals for improving patient care.
+6. Impact
+
+6.1 Benefits for parents: Confidence in data safety and usability
+
+The app provides parents with the assurance that their child’s sensitive medical data is protected through advanced encryption and secure enclave-based processing. By offering user-friendly features such as medication tracking, treatment schedules, and diary entries, the app empowers parents to manage their caregiving tasks with confidence and efficiency. This enhances their ability to focus on their child's well-being while knowing their data is safe.
+6.2 Value to the medical community: Secure sharing and collaboration
+
+The platform bridges the gap between families and healthcare providers by enabling secure sharing of medical records, treatment plans, and progress reports. With tools like encrypted communication and controlled data access, medical professionals can collaborate effectively while maintaining patient confidentiality. This fosters a trust-based ecosystem that benefits research and care delivery for rare diseases.
+6.3 Advocacy for better rare disease support
+
+By connecting families with similar challenges and facilitating knowledge exchange, the app serves as a platform for advocacy and awareness around rare diseases. It creates opportunities for parents, researchers, and healthcare providers to contribute to broader efforts in rare disease recognition and support, encouraging greater focus on personalized care solutions.
+7. Conclusion
+
+8. References
+
+RareGuru. “App Privacy Policy.” RareGuru, May 8, 2020, https://rareguru.com/legal/privacy-app.
+
+Amazon Web Services. "What is Nitro Enclaves?" Amazon Web Services, October 29, 2024, https://docs.aws.amazon.com/enclaves/latest/user/nitro-enclave.html.
+
+Amazon Web Services. "What is Amazon Relational Database Service (Amazon RDS)?”, Amazon Web Services, 2024, https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Welcome.html.
+
+Amazon Web Services. “Nitro Enclaves concepts” Amazon Web Services, 2024, https://docs.aws.amazon.com/enclaves/latest/user/nitro-enclave-concepts.html.
+
+Strapi, “Frequently Asked Questions”, Strapi, 2024, https://strapi.io/faq.
+
+
+
